@@ -3,10 +3,10 @@ import { connectDB } from '@/lib/db/mongoose'
 import { User } from '@/lib/db/models/user.model'
 import { fetchCreditProfileFromChain, fetchBorrowLimit } from '@/lib/algorand/readChain'
 
-export async function GET(req: NextRequest, { params }: { params: { address: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ address: string }> }) {
   try {
+    const { address } = await params
     await connectDB()
-    const { address } = params
 
     let user = await User.findOne({ wallet_address: address })
 

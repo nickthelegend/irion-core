@@ -11,6 +11,7 @@ import { useWallet } from '@txnlab/use-wallet-react'
 import { useLenderPosition } from '@/lib/hooks/useLenderPosition'
 import { SetupProtocol } from "@/components/setup-protocol"
 import { getLendingPoolClient, deployments, algodClient } from '@/lib/algorand/client'
+import { algo } from '@algorandfoundation/algokit-utils'
 import algosdk from 'algosdk'
 
 type Position = {
@@ -44,10 +45,11 @@ function ManageModal({ pos, onClose }: { pos: Position; onClose: () => void }) {
     { key: "withdraw", label: isSupply ? "Withdraw" : "Repay" },
   ] as const
 
-  const { activeAddress, signer } = useWallet()
+  const { activeAddress, transactionSigner } = useWallet()
 
   const handleAction = async () => {
     if (!amount || !activeAddress) return
+    console.log("[IRION-DEBUG] Savings Modal Action:", { tab, amount, symbol: pos.symbol })
     setLogs([])
     setLoading(true)
     const action = tab === "add" ? (isSupply ? "Supply" : "Borrow") : (isSupply ? "Withdraw" : "Repay")
@@ -57,14 +59,15 @@ function ManageModal({ pos, onClose }: { pos: Position; onClose: () => void }) {
       log(`[SYNC] Preparing atomic group...`, "wait")
 
       if (action === "Repay") {
+        console.log("[IRION-DEBUG] Processing Repay for", amount, "USDC")
         const client = getLendingPoolClient(activeAddress)
         const amountMicro = BigInt(parseFloat(amount) * 1_000_000)
         
         // 1. Transaction to send USDC to Pool
         const sp = await algodClient.getTransactionParams().do()
         const axfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-          from: activeAddress,
-          to: algosdk.getApplicationAddress(deployments.lending_pool_app_id),
+          sender: activeAddress,
+          receiver: algosdk.getApplicationAddress(deployments.lending_pool_app_id),
           amount: amountMicro,
           assetIndex: deployments.usdc_asset_id,
           suggestedParams: sp,
@@ -72,18 +75,20 @@ function ManageModal({ pos, onClose }: { pos: Position; onClose: () => void }) {
 
         // 2. Call repay method
         log(`[TX] Calling repay(axfer, ${activeAddress})...`, "info")
+        console.log("[IRION-DEBUG] Sending repay transaction group...")
         const result = await client.send.repay({
           args: {
             payment: axfer,
             borrower: algosdk.decodeAddress(activeAddress).publicKey,
           },
-          extraFee: algosdk.microalgos(1000) // Cover inner txn if any
+          extraFee: algo(0.001) // Cover inner txn if any
         })
         
-        log(`[TX] Submitted Hash: ${result.txId.slice(0, 10)}...`, "ok")
-        log(`[TX] Confirmed in round ${result.confirmation?.['confirmed-round']}`, "ok")
+        console.log("[IRION-DEBUG] Repay TX result confirmed:", result.transaction.txID())
+        log(`[TX] Submitted Hash: ${result.transaction.txID().slice(0, 10)}...`, "ok")
+        log(`[TX] Confirmed in round ${result.confirmation?.confirmedRound}`, "ok")
       } else {
-        // Mock other actions for now
+        console.log("[IRION-DEBUG] Action not implemented (mocked):", action)
         log(`[MOCK] ${action} executed successfully (UI only)`, "ok")
       }
 
@@ -91,11 +96,13 @@ function ManageModal({ pos, onClose }: { pos: Position; onClose: () => void }) {
       setLoading(false)
       toast.success(`${action} submitted successfully`)
     } catch (error: any) {
+      console.error("[IRION-DEBUG] Savings Action Error:", error)
       log(`[ERR] ${error.message || "Transaction failed"}`, "err")
       setLoading(false)
       toast.error(`${action} failed: ${error.message}`)
     }
   }
+
 
   const logColor = (t: LogEntry["type"]) => t === "ok" ? "text-green-400" : t === "err" ? "text-red-400" : t === "wait" ? "text-yellow-400" : "text-white/50"
 

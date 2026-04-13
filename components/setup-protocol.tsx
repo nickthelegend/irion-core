@@ -1,14 +1,15 @@
 "use client"
 
 import { useState } from "react"
-import { ShieldCheck, Loader2, CheckCircle2, AlertCircle, Zap, ShieldAlert } from "lucide-react"
+import { ShieldCheck, Loader2, CheckCircle2, ShieldAlert, Zap } from "lucide-react"
 import { useWallet } from "@txnlab/use-wallet-react"
 import { algodClient, deployments } from "@/lib/algorand/client"
 import algosdk from "algosdk"
 import { toast } from "sonner"
+import { AlgorandClient } from "@algorandfoundation/algokit-utils"
 
 export function SetupProtocol() {
-  const { activeAddress, signer } = useWallet()
+  const { activeAddress, transactionSigner } = useWallet()
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<{ id: string; name: string; status: "pending" | "loading" | "done" | "error" }[]>([
     { id: "usdc", name: "Opt-in to USDC Asset", status: "pending" },
@@ -18,34 +19,36 @@ export function SetupProtocol() {
   const handleSetup = async () => {
     if (!activeAddress) return
     setLoading(true)
+    console.log("[IRION-DEBUG] Starting Protocol Setup for", activeAddress)
 
     try {
       // 1. USDC Opt-in
       setSteps(s => s.map(step => step.id === "usdc" ? { ...step, status: "loading" } : step))
+      console.log("[IRION-DEBUG] Opting in to USDC Asset ID:", deployments.usdc_asset_id)
       
-      const sp = await algodClient.getTransactionParams().do()
-      const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        from: activeAddress,
-        to: activeAddress,
-        assetIndex: deployments.usdc_asset_id,
-        amount: 0,
-        suggestedParams: sp,
-      })
+      const algorand = AlgorandClient.fromClients({ algod: algodClient })
+      algorand.setSigner(activeAddress, transactionSigner)
 
-      // Send transaction (signer will handle it)
-      const { txId } = await signer([optInTxn.toByte()], [0])
+      const result = await algorand.send.assetOptIn({
+        sender: activeAddress,
+        assetId: BigInt(deployments.usdc_asset_id),
+      })
+      
+      const txId = result.transaction.txID()
+      console.log("[IRION-DEBUG] USDC Opt-in TX ID:", txId)
       await algosdk.waitForConfirmation(algodClient, txId, 4)
       
       setSteps(s => s.map(step => step.id === "usdc" ? { ...step, status: "done" } : step))
 
       // 2. Pool Access (Mock or application opt-in if needed)
       setSteps(s => s.map(step => step.id === "pool" ? { ...step, status: "loading" } : step))
-      // In this protocol, boxes are used, so no explicit app opt-in is required for users.
-      // We'll just mark it as done to signify ready state.
+      console.log("[IRION-DEBUG] Registering Pool Access (Mock)")
+      
       await new Promise(r => setTimeout(r, 1000))
       setSteps(s => s.map(step => step.id === "pool" ? { ...step, status: "done" } : step))
 
       toast.success("Protocol setup complete!")
+
     } catch (error: any) {
       console.error(error)
       const failedId = steps.find(s => s.status === "loading")?.id || "usdc"

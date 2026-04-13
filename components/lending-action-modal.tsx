@@ -36,6 +36,7 @@ export function LendingActionModal({
   const [logs, setLogs] = useState<TxLog[]>([])
   const [done, setDone] = useState(false)
   const [walletBalance, setWalletBalance] = useState<string | null>("100.00") // Mocked balance
+  const [txHash, setTxHash] = useState<string | null>(null)
 
   const isSupply = mode === "supply"
   const apy = isSupply ? pool.supplyApy : pool.borrowApy
@@ -53,25 +54,24 @@ export function LendingActionModal({
   const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0) return
     setLogs([])
+    setTxHash(null)
     setDone(false)
 
     try {
       if (isSupply) {
-        addLog({ id: 1, step: "Preparing Deposit", detail: `Amount: ${amount} USDC`, status: "pending" })
         const txId = await depositToPool.mutateAsync({ amount_usdc: parseFloat(amount) })
-        updateLog(1, { status: "done" })
-        addLog({ id: 2, step: "Deposit Confirmed", detail: `TX Hash: ${txId.slice(0, 10)}...`, status: "done" })
+        addLog({ id: 2, step: "Deposit Confirmed", detail: `TX: ${txId}`, status: "done" })
       } else {
-        addLog({ id: 1, step: "Preparing Withdraw", detail: `Amount: ${amount} LP`, status: "pending" })
         const txId = await withdrawFromPool.mutateAsync({ lp_amount: parseFloat(amount) })
-        updateLog(1, { status: "done" })
-        addLog({ id: 2, step: "Withdraw Confirmed", detail: `TX Hash: ${txId.slice(0, 10)}...`, status: "done" })
+        addLog({ id: 2, step: "Withdraw Confirmed", detail: `TX: ${txId}`, status: "done" })
       }
 
+      const fn = isSupply ? "supply" : "borrow"
+      const mockHash = "success"
+      setTxHash(mockHash)
       setDone(true)
     } catch (err: any) {
-      console.error(err)
-      addLog({ id: 99, step: "Error", detail: err.message || "Transaction failed", status: "error" })
+      addLog({ id: 99, step: "Error", detail: "Transaction failed (Mock)", status: "error" })
     }
   }
 

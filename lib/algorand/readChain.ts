@@ -2,14 +2,14 @@ import { algodClient, deployments, getCreditScoreClient, getLendingPoolClient, g
 
 // Read credit profile for a wallet address from chain
 export async function fetchCreditProfileFromChain(address: string) {
-  console.log('DEBUG: fetchCreditProfileFromChain initiated', address)
+  console.log('[IRION-DEBUG] fetchCreditProfileFromChain initiated', address)
   const client = getCreditScoreClient()
   try {
     const result = await client.send.getCreditProfile({ args: [address] })
-    console.log('DEBUG: fetchCreditProfileFromChain result', result.return)
+    console.log('[IRION-DEBUG] fetchCreditProfileFromChain result', result.return)
     return result.return
   } catch (e) {
-    console.warn('DEBUG: fetchCreditProfileFromChain error (likely no profile)', e)
+    console.warn('[IRION-DEBUG] fetchCreditProfileFromChain error (likely no profile)', e)
     // User has no profile yet on chain — return defaults
     return {
       score: BigInt(300),
@@ -24,26 +24,26 @@ export async function fetchCreditProfileFromChain(address: string) {
 
 // Read borrow limit for address
 export async function fetchBorrowLimit(address: string): Promise<number> {
-  console.log('DEBUG: fetchBorrowLimit initiated', address)
+  console.log('[IRION-DEBUG] fetchBorrowLimit initiated', address)
   const client = getCreditScoreClient()
   try {
     const result = await client.send.getBorrowLimit({ args: [address] })
-    console.log('DEBUG: fetchBorrowLimit result', result.return)
+    console.log('[IRION-DEBUG] fetchBorrowLimit result', result.return)
     return Number(result.return ?? BigInt(0))
   } catch (e) {
-    console.warn('DEBUG: fetchBorrowLimit error', e)
+    console.warn('[IRION-DEBUG] fetchBorrowLimit error', e)
     return 0
   }
 }
 
 // Read pool stats
 export async function fetchPoolStats() {
-  console.log('DEBUG: fetchPoolStats initiated')
+  console.log('[IRION-DEBUG] fetchPoolStats initiated')
   const client = getLendingPoolClient()
   try {
     const result = await client.send.getPoolStats({ args: [] })
     if (!result.return) {
-      console.warn('DEBUG: fetchPoolStats - no return value')
+      console.warn('[IRION-DEBUG] fetchPoolStats - no return value')
       return null
     }
     const stats = {
@@ -51,17 +51,17 @@ export async function fetchPoolStats() {
       total_borrowed: result.return[1],
       utilization: result.return[2]
     }
-    console.log('DEBUG: fetchPoolStats result', stats)
+    console.log('[IRION-DEBUG] fetchPoolStats result', stats)
     return stats
   } catch (e) {
-    console.error('DEBUG: fetchPoolStats error', e)
+    console.error('[IRION-DEBUG] fetchPoolStats error', e)
     return null
   }
 }
 
 // Read lender position
 export async function fetchLenderPosition(address: string) {
-  console.log('DEBUG: fetchLenderPosition initiated', address)
+  console.log('[IRION-DEBUG] fetchLenderPosition initiated', address)
   const client = getLendingPoolClient()
   try {
     const result = await client.send.getLenderPosition({ args: [address] })
@@ -70,10 +70,10 @@ export async function fetchLenderPosition(address: string) {
       deposit_amount: result.return[0], 
       accrued_yield: result.return[1] 
     }
-    console.log('DEBUG: fetchLenderPosition result', pos)
+    console.log('[IRION-DEBUG] fetchLenderPosition result', pos)
     return pos
   } catch (e) {
-    console.warn('DEBUG: fetchLenderPosition error (likely no position)', e)
+    console.warn('[IRION-DEBUG] fetchLenderPosition error (likely no position)', e)
     return { deposit_amount: BigInt(0), accrued_yield: BigInt(0) }
   }
 }

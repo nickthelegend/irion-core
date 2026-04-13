@@ -9,7 +9,6 @@ import { useLenderPosition } from '@/lib/hooks/useLenderPosition'
 import { useUserProfile } from '@/lib/hooks/useUserProfile'
 import { SetupProtocol } from "@/components/setup-protocol"
 import { useTransactions } from '@/lib/hooks/useTransactions'
-import { useInitiateLoan } from "@/lib/hooks/useContractActions"
 
 const BORROW_ASSETS = [
   { symbol: "USDC", color: "bg-blue-500" },
@@ -66,51 +65,30 @@ export default function BorrowPage() {
   const [duration, setDuration] = useState("30")
   const [borrowAsset, setBorrowAsset] = useState("USDC")
   const [collateralAsset, setCollateralAsset] = useState("WETH")
-  const [loadingUI, setLoadingUI] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const { activeAddress } = useWallet()
   const { data: position } = useLenderPosition(activeAddress || undefined)
   const { data: userProfile } = useUserProfile(activeAddress || undefined)
-  const initiateLoan = useInitiateLoan()
-
-  const loading = loadingUI || initiateLoan.isPending
 
   const decryptingBalances = false
   const collateralBalance = position?.deposit_amount ?? 0
   const debtBalance = userProfile?.total_borrowed ?? 0
 
   const handleSubmit = async () => {
-    if (!activeAddress) {
-      toast.error("Please connect your wallet")
-      return
-    }
-    if (!borrowAmount || parseFloat(borrowAmount) <= 0) {
-      toast.error("Invalid borrow amount")
-      return
-    }
-
-    setLoadingUI(true)
-    try {
-      // For this protocol version, we default to 4 installments
-      // and a platform-wide merchant address if not specified.
-      const placeholderMerchant = "6JGSBRX7M7M4FMDZ7U6D3XJXWQ4M4M4M4M4M4M4M4M4M4M4M4M4M4M4M" // Placeholder
-      
-      const result = await initiateLoan.mutateAsync({
-        merchant: placeholderMerchant,
-        amount_usdc: parseFloat(borrowAmount),
-        num_installments: 4 
-      })
-
-      toast.success(`Loan initiated! Tx: ${result.txId.slice(0, 8)}...`)
+    if ((!borrowAmount || parseFloat(borrowAmount) <= 0) && (!collateralAmount || parseFloat(collateralAmount) <= 0)) return
+    setLoading(true)
+    console.log("[IRION-DEBUG] Borrow Submission:", { borrowAmount, borrowAsset, collateralAmount, collateralAsset, duration, maxRate })
+    
+    setTimeout(() => {
+      setLoading(false)
+      console.log("[IRION-DEBUG] Borrow submission success (Mock)")
+      toast.success("Borrow intent submitted successfully (Mock)")
       setBorrowAmount("")
       setCollateralAmount("")
-    } catch (err: any) {
-      console.error(err)
-      toast.error(`Borrow failed: ${err.message || "Unknown error"}`)
-    } finally {
-      setLoadingUI(false)
-    }
+    }, 2000)
   }
+
 
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">

@@ -66,9 +66,11 @@ export default function FaucetPage() {
   const handleDispense = async () => {
     if (!canSubmit) return
     setStatus("loading")
+    console.log("[IRION-DEBUG] Faucet Dispense Attempt:", { recipient, amount, token })
     
     try {
       if (token !== "USDC") {
+        console.log("[IRION-DEBUG] Unsupported token selected:", token)
         throw new Error("Only USDC testnet minting is currently supported.")
       }
       const res = await fetch('/api/faucet', {
@@ -77,17 +79,22 @@ export default function FaucetPage() {
         body: JSON.stringify({ address: recipient })
       })
       const data = await res.json()
+      console.log("[IRION-DEBUG] Faucet API Response:", data)
+
       if (!res.ok) throw new Error(data.error || "Failed to mint")
 
       setStatus("success")
       setTxHash(data.tx_id)
+      console.log("[IRION-DEBUG] Faucet Success! TX:", data.tx_id)
       toast.success(`Minted ${amount} ${token} successfully! TX: ${data.tx_id.slice(0,8)}...`)
       setAmount("")
     } catch (err: any) {
+      console.error("[IRION-DEBUG] Faucet Error:", err)
       setStatus("error")
       toast.error(err.message)
     }
   }
+
 
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">

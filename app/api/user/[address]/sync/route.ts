@@ -3,10 +3,10 @@ import { connectDB } from '@/lib/db/mongoose'
 import { User } from '@/lib/db/models/user.model'
 import { fetchCreditProfileFromChain, fetchBorrowLimit } from '@/lib/algorand/readChain'
 
-export async function POST(req: NextRequest, { params }: { params: { address: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ address: string }> }) {
   try {
+    const { address } = await params
     await connectDB()
-    const { address } = params
 
     const profile: any = await fetchCreditProfileFromChain(address)
     const borrowLimit = await fetchBorrowLimit(address)
