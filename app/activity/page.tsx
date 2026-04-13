@@ -1,4 +1,7 @@
 "use client"
+import { useWallet } from '@txnlab/use-wallet-react'
+import { useTransactions } from '@/lib/hooks/useTransactions'
+import { useUserProfile } from '@/lib/hooks/useUserProfile'
 
 import {
   TrendingDown,
@@ -45,15 +48,19 @@ function getIcon(type: string) {
 }
 
 export default function ActivityPage() {
-  // Mocked state
-  const isConnected = true
-  const loading = false
-  const error = null
-  const transactions = [
-    { type: 'supply', title: 'Supplied 1,500 USDC', status: 'VERIFIED', timestamp: Date.now() - 3600000, txHash: '0x' + 'a'.repeat(64), amount: '1,500', asset: 'USDC' },
-    { type: 'borrow', title: 'Borrowed 500 USDT', status: 'VERIFIED', timestamp: Date.now() - 86400000, txHash: '0x' + 'b'.repeat(64), amount: '500', asset: 'USDT' },
-    { type: 'deposit', title: 'Collateral Deposit: 2.5 WETH', status: 'VERIFIED', timestamp: Date.now() - 172800000, txHash: '0x' + 'c'.repeat(64), amount: '2.5', asset: 'WETH' }
-  ]
+  const { activeAddress } = useWallet()
+  const { data: realTxns, isLoading: txnsLoading } = useTransactions(activeAddress ?? undefined)
+  const { data: userProfile } = useUserProfile(activeAddress ?? undefined)
+
+  const transactions = (realTxns ?? []).map((t: any) => ({
+    type: t.type,
+    title: `${t.type.charAt(0).toUpperCase() + t.type.slice(1)} ${t.amount_usdc} USDC`,
+    status: t.status === 'confirmed' ? 'VERIFIED' : 'PENDING',
+    timestamp: new Date(t.timestamp).getTime(),
+    txHash: t.tx_id,
+    amount: t.amount_usdc.toString(),
+    asset: 'USDC'
+  }))
 
   const formatTimeAgo = (ts: number) => {
     const diff = Date.now() - ts
@@ -66,7 +73,7 @@ export default function ActivityPage() {
     <div className="flex flex-col gap-8 py-8 font-mono text-white">
       <div className="flex flex-col gap-2">
         <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase">
-          Confidential_Ledger // access_granted
+          Activity_Ledger // access_granted
         </span>
         <h1 className="text-white text-3xl tracking-tighter font-black uppercase">
           Transaction History
@@ -77,7 +84,7 @@ export default function ActivityPage() {
         <div className="bg-[#05080f]/40 border border-primary/20 rounded-2xl p-8 relative overflow-hidden group backdrop-blur-md">
           <p className="text-foreground/50 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Total Supplied</p>
           <div className="flex items-baseline gap-2">
-            <h1 className="text-white text-4xl font-black tracking-tighter tabular-nums">••••••••</h1>
+            <h1 className="text-white text-4xl font-black tracking-tighter tabular-nums">{userProfile?.total_deposited?.toFixed(2) ?? "0.00"}</h1>
           </div>
           <Database className="absolute -bottom-2 -right-2 w-16 h-16 text-primary/5 group-hover:text-primary/10 transition-colors" />
         </div>
@@ -85,7 +92,7 @@ export default function ActivityPage() {
         <div className="bg-[#05080f]/40 border border-border/40 rounded-2xl p-8 relative overflow-hidden group backdrop-blur-md">
           <p className="text-foreground/50 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Total Borrowed</p>
           <div className="flex items-baseline gap-2">
-            <h1 className="text-white text-4xl font-black tracking-tighter tabular-nums">••••••••</h1>
+            <h1 className="text-white text-4xl font-black tracking-tighter tabular-nums">{userProfile?.total_borrowed?.toFixed(2) ?? "0.00"}</h1>
           </div>
           <Zap className="absolute -bottom-2 -right-2 w-16 h-16 text-red-500/5 group-hover:text-red-500/10 transition-colors" />
         </div>
@@ -102,11 +109,11 @@ export default function ActivityPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <section className="lg:col-span-8 flex flex-col gap-4">
           <div className="flex items-center justify-between px-2">
-            <h2 className="text-white text-xs font-bold uppercase tracking-[0.3em] text-foreground/40">Recent Confidential Activity</h2>
+            <h2 className="text-white text-xs font-bold uppercase tracking-[0.3em] text-foreground/40">Recent History</h2>
           </div>
           
           <div className="space-y-4">
-            {transactions.map((t, i) => (
+            {transactions.map((t: any, i: number) => (
               <div key={i} className="bg-card/20 border border-border/40 rounded-2xl p-6 flex items-center justify-between hover:bg-white/[0.04] transition-all group backdrop-blur-sm shadow-xl">
                 <div className="flex items-center gap-6">
                   <div className="size-14 rounded-2xl bg-white/5 border border-border/20 flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
@@ -155,7 +162,7 @@ export default function ActivityPage() {
                 <ShieldCheck size={16} /> Audit_Report
               </h3>
               <p className="text-[10px] text-foreground/60 leading-relaxed font-mono">
-                The Polaris Protocol undergoes continuous health audits. Your positions are individually monitored for risk while maintaining 100% encryption on the public ledger.
+                The Irion Protocol undergoes continuous health audits. Your positions are individually monitored for risk while maintaining transparency on the public ledger.
               </p>
               <div className="pt-4 border-t border-primary/10 space-y-3">
                  <div className="flex justify-between text-[10px]">

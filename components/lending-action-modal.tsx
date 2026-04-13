@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Loader2, CheckCircle2, Eye, EyeOff, Lock, ShieldCheck, AlertCircle, ExternalLink } from "lucide-react"
+import { X, Loader2, CheckCircle2, ShieldCheck, AlertCircle, ExternalLink, Info } from "lucide-react"
 import { TokenIcon } from "@/components/token-icon"
 import { cn } from "@/lib/utils"
+import { useDepositToPool, useWithdrawFromPool } from "@/lib/hooks/useContractActions"
 
 export type ModalMode = "supply" | "borrow"
 
@@ -33,14 +34,14 @@ export function LendingActionModal({
 }) {
   const [amount, setAmount] = useState("")
   const [logs, setLogs] = useState<TxLog[]>([])
-  const [txHash, setTxHash] = useState<string | null>(null)
-  const [showEncrypted, setShowEncrypted] = useState(false)
   const [done, setDone] = useState(false)
   const [walletBalance, setWalletBalance] = useState<string | null>("100.00") // Mocked balance
 
   const isSupply = mode === "supply"
   const apy = isSupply ? pool.supplyApy : pool.borrowApy
-  const loading = false // Mocked loading state
+  const depositToPool = useDepositToPool()
+  const withdrawFromPool = useWithdrawFromPool()
+  const loading = depositToPool.isPending || withdrawFromPool.isPending
 
   // Max calculations (mocked)
   const maxAmount = isSupply ? walletBalance : (parseFloat(walletBalance || "0") * 0.8).toFixed(2)
@@ -52,40 +53,25 @@ export function LendingActionModal({
   const handleSubmit = async () => {
     if (!amount || parseFloat(amount) <= 0) return
     setLogs([])
-    setTxHash(null)
     setDone(false)
 
     try {
-      // Step 1 — encrypt (mocked)
-      addLog({ id: 1, step: "Encrypting input", detail: `${amount} ${pool.symbol} → euint64 ciphertext`, status: "pending" })
-      await new Promise(r => setTimeout(r, 800))
-      updateLog(1, { 
-        status: "done", 
-        detail: `${amount} ${pool.symbol} encrypted via Zama FHEVM · 2048-bit CRS`, 
-        encrypted: "0x" + "f".repeat(64)
-      })
-
-      // Step 2 — collateral (borrow only - mocked)
-      if (!isSupply) {
-        addLog({ id: 2, step: "Depositing collateral", detail: `depositCollateral(...) — 2× for health factor`, status: "pending" })
-        await new Promise(r => setTimeout(r, 800))
-        updateLog(2, { status: "done", detail: `Collateral deposited (Mock)` })
+      if (isSupply) {
+        addLog({ id: 1, step: "Preparing Deposit", detail: `Amount: ${amount} USDC`, status: "pending" })
+        const txId = await depositToPool.mutateAsync({ amount_usdc: parseFloat(amount) })
+        updateLog(1, { status: "done" })
+        addLog({ id: 2, step: "Deposit Confirmed", detail: `TX Hash: ${txId.slice(0, 10)}...`, status: "done" })
+      } else {
+        addLog({ id: 1, step: "Preparing Withdraw", detail: `Amount: ${amount} LP`, status: "pending" })
+        const txId = await withdrawFromPool.mutateAsync({ lp_amount: parseFloat(amount) })
+        updateLog(1, { status: "done" })
+        addLog({ id: 2, step: "Withdraw Confirmed", detail: `TX Hash: ${txId.slice(0, 10)}...`, status: "done" })
       }
 
-      const fn = isSupply ? "supply" : "borrow"
-      addLog({ id: 3, step: `Calling ${fn}()`, detail: "Broadcasting encrypted tx to PrivateLendingPool...", status: "pending" })
-      await new Promise(r => setTimeout(r, 1200))
-      
-      const mockHash = "0x" + "a".repeat(64)
-      updateLog(3, { 
-        status: "done", 
-        detail: `Confirmed · ${mockHash.slice(0, 12)}...`
-      })
-
-      setTxHash(mockHash)
       setDone(true)
     } catch (err: any) {
-      addLog({ id: 99, step: "Error", detail: "Transaction failed (Mock)", status: "error" })
+      console.error(err)
+      addLog({ id: 99, step: "Error", detail: err.message || "Transaction failed", status: "error" })
     }
   }
 
@@ -165,8 +151,8 @@ export function LendingActionModal({
           </div>
 
           <div className="flex items-center gap-2 bg-[#05080f]/40 border border-border/20 rounded-xl px-4 py-3">
-            <Lock size={12} className="text-primary/50 flex-shrink-0" />
-            <span className="text-[10px] text-foreground/40">Amount encrypted via Zama FHEVM — never visible on-chain</span>
+            <Info size={12} className="text-primary/50 flex-shrink-0" />
+            <span className="text-[10px] text-foreground/40">Your transaction will be processed on the Algorand blockchain</span>
           </div>
 
           <button
@@ -190,19 +176,12 @@ export function LendingActionModal({
               <ShieldCheck size={12} className="text-primary/60" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-foreground/50">Tx Log</span>
             </div>
-            <button
-              onClick={() => setShowEncrypted(p => !p)}
-              className="flex items-center gap-1 text-[9px] text-primary/50 hover:text-primary transition-colors"
-            >
-              {showEncrypted ? <EyeOff size={10} /> : <Eye size={10} />}
-              {showEncrypted ? "Hide" : "Show"} cipher
-            </button>
           </div>
 
           <div className="flex-1 space-y-2 overflow-y-auto max-h-64 md:max-h-none">
             {logs.length === 0 ? (
               <p className="text-[10px] text-foreground/20 italic text-center pt-4">
-                Submit to see live encryption steps
+                Submit transaction to see progress
               </p>
             ) : (
               logs.map(log => (

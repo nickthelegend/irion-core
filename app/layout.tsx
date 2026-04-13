@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Irion | Confidential Lending Starter",
-  description: "Next-generation confidential lending UI starter kit.",
+  title: "Irion | Standard Lending Terminal",
+  description: "Next-generation lending and savings UI starter kit.",
 };
 
 export default function RootLayout({

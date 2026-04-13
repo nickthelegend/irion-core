@@ -4,6 +4,8 @@ import { NetworkId, WalletId, WalletManager, WalletProvider } from '@txnlab/use-
 import { WalletUIProvider } from '@txnlab/use-wallet-ui-react'
 import '@txnlab/use-wallet-ui-react/dist/style.css'
 
+import { QueryProvider } from '@/lib/providers/QueryProvider'
+
 import { ThemeProvider } from './theme-provider'
 import { Toaster } from './ui/sonner'
 
@@ -14,7 +16,8 @@ const walletManager = new WalletManager({
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+    <QueryProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <WalletProvider manager={walletManager}>
         <WalletUIProvider>
           {children}
@@ -22,5 +25,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         </WalletUIProvider>
       </WalletProvider>
     </ThemeProvider>
+    </QueryProvider>
   )
 }

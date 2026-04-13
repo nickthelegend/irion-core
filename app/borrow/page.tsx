@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from "react"
 import { ChevronDown, Check, Info, ShieldAlert, ChevronRight, Lock, Loader2 } from "lucide-react"
 import { TokenIcon } from "@/components/token-icon"
 import { toast } from "sonner"
+import { useWallet } from '@txnlab/use-wallet-react'
+import { useLenderPosition } from '@/lib/hooks/useLenderPosition'
+import { useUserProfile } from '@/lib/hooks/useUserProfile'
+import { SetupProtocol } from "@/components/setup-protocol"
+import { useTransactions } from '@/lib/hooks/useTransactions'
+import { useInitiateLoan } from "@/lib/hooks/useContractActions"
 
 const BORROW_ASSETS = [
   { symbol: "USDC", color: "bg-blue-500" },
@@ -60,37 +66,67 @@ export default function BorrowPage() {
   const [duration, setDuration] = useState("30")
   const [borrowAsset, setBorrowAsset] = useState("USDC")
   const [collateralAsset, setCollateralAsset] = useState("WETH")
-  const [loading, setLoading] = useState(false)
+  const [loadingUI, setLoadingUI] = useState(false)
 
-  // Mocked state for UI-only starter
+  const { activeAddress } = useWallet()
+  const { data: position } = useLenderPosition(activeAddress || undefined)
+  const { data: userProfile } = useUserProfile(activeAddress || undefined)
+  const initiateLoan = useInitiateLoan()
+
+  const loading = loadingUI || initiateLoan.isPending
+
   const decryptingBalances = false
-  const collateralBalance = null
-  const debtBalance = null
+  const collateralBalance = position?.deposit_amount ?? 0
+  const debtBalance = userProfile?.total_borrowed ?? 0
 
   const handleSubmit = async () => {
-    if ((!borrowAmount || parseFloat(borrowAmount) <= 0) && (!collateralAmount || parseFloat(collateralAmount) <= 0)) return
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      toast.success("Borrow intent submitted successfully (Mock)")
+    if (!activeAddress) {
+      toast.error("Please connect your wallet")
+      return
+    }
+    if (!borrowAmount || parseFloat(borrowAmount) <= 0) {
+      toast.error("Invalid borrow amount")
+      return
+    }
+
+    setLoadingUI(true)
+    try {
+      // For this protocol version, we default to 4 installments
+      // and a platform-wide merchant address if not specified.
+      const placeholderMerchant = "6JGSBRX7M7M4FMDZ7U6D3XJXWQ4M4M4M4M4M4M4M4M4M4M4M4M4M4M4M" // Placeholder
+      
+      const result = await initiateLoan.mutateAsync({
+        merchant: placeholderMerchant,
+        amount_usdc: parseFloat(borrowAmount),
+        num_installments: 4 
+      })
+
+      toast.success(`Loan initiated! Tx: ${result.txId.slice(0, 8)}...`)
       setBorrowAmount("")
       setCollateralAmount("")
-    }, 2000)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(`Borrow failed: ${err.message || "Unknown error"}`)
+    } finally {
+      setLoadingUI(false)
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">
       <div className="flex flex-col gap-2">
-        <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase">Confidential_Debt // terminal_access</span>
+        <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase">Active_Debt // terminal_access</span>
         <h1 className="text-white text-3xl tracking-tighter font-black uppercase">Execute Borrow</h1>
       </div>
+
+      <SetupProtocol />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-7 bg-[#0d0f14] border border-border/30 rounded-3xl overflow-hidden">
           <div className="p-8 space-y-5">
             <div>
-              <h3 className="text-xl font-bold text-white">Borrow with Privacy</h3>
-              <p className="text-xs text-foreground/40 mt-1 leading-relaxed">Submit a private borrow intent. Your amount is encrypted via Zama FHEVM before hitting the chain.</p>
+              <h3 className="text-xl font-bold text-white">Issue Borrow Request</h3>
+              <p className="text-xs text-foreground/40 mt-1 leading-relaxed">Submit a transparent borrow request. Your terms are recorded directly on the Algorand blockchain.</p>
             </div>
 
             <div className="bg-[#05080f]/60 border border-border/20 rounded-2xl p-5 space-y-2">
@@ -130,15 +166,15 @@ export default function BorrowPage() {
 
             <div className="flex items-center gap-2 bg-[#05080f]/40 border border-border/20 rounded-xl px-4 py-3">
               <Info size={14} className="text-foreground/30 flex-shrink-0" />
-              <span className="text-xs text-foreground/40">Your amount is encrypted via Zama FHEVM — never visible on-chain</span>
+              <span className="text-xs text-foreground/40">Your borrow request is transparently recorded on-chain</span>
             </div>
 
             <button
               onClick={handleSubmit}
               disabled={loading || (!borrowAmount && !collateralAmount)}
-              className="w-full py-4 rounded-2xl bg-purple-500/70 hover:bg-purple-500/90 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-primary hover:bg-primary/90 disabled:opacity-50 text-black font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(0,202,150,0.2)]"
             >
-              {loading ? <><Loader2 size={16} className="animate-spin" /> Encrypting & Submitting...</> : "Submit Borrow Intent"}
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : "Submit Borrow Request"}
             </button>
           </div>
         </div>
@@ -150,15 +186,15 @@ export default function BorrowPage() {
             </h3>
             <div className="space-y-4">
               {[
-                { label: "Collateral (Encrypted)", value: decryptingBalances ? "••••••••" : collateralBalance !== null ? `${collateralBalance}` : "••••••••", muted: decryptingBalances || collateralBalance === null },
+                { label: "Collateral", value: collateralBalance !== null ? `${collateralBalance}` : "0.00", muted: collateralBalance === null },
                 { label: "Projected Loan Value", value: borrowAmount ? `${Number(borrowAmount).toLocaleString()}` : "—" },
-                { label: "Debt Balance (Encrypted)", value: decryptingBalances ? "••••••••" : debtBalance !== null ? `${debtBalance}` : "••••••••", muted: decryptingBalances || debtBalance === null },
-                { label: "Liquidation Price", value: "Hidden", muted: true },
+                { label: "Debt Balance", value: debtBalance !== null ? `${debtBalance}` : "0.00", muted: debtBalance === null },
+                { label: "Liquidation Price", value: "TBD", muted: true },
               ].map(row => (
                 <div key={row.label} className="flex justify-between items-center text-[11px] border-b border-border/10 pb-4 last:border-0 last:pb-0">
                   <span className="text-foreground/40">{row.label}</span>
                   <span className={`font-bold flex items-center gap-1.5 ${row.muted ? "text-foreground/30 tracking-widest" : "text-primary"}`}>
-                    {row.muted && <Lock size={10} />}{row.value}
+                    {row.value}
                   </span>
                 </div>
               ))}
@@ -167,11 +203,11 @@ export default function BorrowPage() {
 
           <div className="bg-primary/5 border border-primary/20 rounded-3xl p-8 space-y-4 group cursor-pointer hover:bg-primary/10 transition-colors">
             <div className="flex justify-between items-center">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Learn_How_It_Works</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Collateral Transparency</h3>
               <ChevronRight size={16} className="text-primary group-hover:translate-x-1 transition-transform" />
             </div>
             <p className="text-[11px] text-foreground/60 leading-relaxed italic">
-              Zama FHEVM allows you to borrow tokens against your collateral without ever revealing your debt amount to the blockchain.
+              All collateral levels are tracked transparently to ensure protocol solvency and fair market conditions.
             </p>
           </div>
         </div>

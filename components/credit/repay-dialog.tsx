@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { useMakePayment } from "@/lib/hooks/useContractActions"
 
 interface SplitPlan {
   _id: string
@@ -59,6 +60,7 @@ export function RepayDialog({ open, onOpenChange, loans, splitPlans, onRepayment
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const makePayment = useMakePayment()
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -91,13 +93,14 @@ export function RepayDialog({ open, onOpenChange, loans, splitPlans, onRepayment
     setLoading(true)
 
     try {
-      // Mocked repayment delay
-      await new Promise(r => setTimeout(r, 1500))
+      const txId = await makePayment.mutateAsync({
+        loan_id: Number(selectedLoanId),
+        amount_usdc: parseFloat(amount)
+      })
       
-      const mockHash = "0x" + "a".repeat(64)
-      setTxHash(mockHash)
+      setTxHash(txId)
       setSuccess(true)
-      toast.success("Repayment successful (Mock)")
+      toast.success("Repayment successful!")
       onRepaymentComplete?.()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))

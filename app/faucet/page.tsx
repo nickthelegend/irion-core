@@ -67,18 +67,32 @@ export default function FaucetPage() {
     if (!canSubmit) return
     setStatus("loading")
     
-    setTimeout(() => {
+    try {
+      if (token !== "USDC") {
+        throw new Error("Only USDC testnet minting is currently supported.")
+      }
+      const res = await fetch('/api/faucet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: recipient })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to mint")
+
       setStatus("success")
-      setTxHash("0x" + "f".repeat(64))
-      toast.success(`Minted ${amount} ${token} successfully (Mock)`)
+      setTxHash(data.tx_id)
+      toast.success(`Minted ${amount} ${token} successfully! TX: ${data.tx_id.slice(0,8)}...`)
       setAmount("")
-    }, 2000)
+    } catch (err: any) {
+      setStatus("error")
+      toast.error(err.message)
+    }
   }
 
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">
       <div className="flex flex-col gap-2">
-        <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase animate-pulse">Confidential_Faucet // testnet_resources</span>
+        <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase animate-pulse">Lending_Faucet // testnet_resources</span>
         <h1 className="text-white text-3xl md:text-5xl tracking-tighter font-black uppercase italic">Testnet_Resources</h1>
       </div>
 

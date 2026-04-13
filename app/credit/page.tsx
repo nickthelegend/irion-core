@@ -1,5 +1,8 @@
 "use client"
 
+import { useWallet } from '@txnlab/use-wallet-react'
+import { useLoans } from '@/lib/hooks/useLoans'
+import { useUserProfile, useSyncUserProfile } from '@/lib/hooks/useUserProfile'
 import { useState, useEffect } from "react"
 import { WalletButton } from '@txnlab/use-wallet-ui-react'
 import {
@@ -14,24 +17,31 @@ const PAGE_SIZE = 10
 interface Loan { id: number; principal: string; interest: string; totalDebt: string; repaid: string; startTime: number; status: number; poolToken: string }
 
 export default function CreditPage() {
-  const [collateral, setCollateral] = useState("12450.00")
-  const [externalValue, setExternalValue] = useState("5000.00")
-  const [creditLine, setCreditLine] = useState(25000)
-  const [onChainLimit, setOnChainLimit] = useState("30000")
-  const [loans, setLoans] = useState<Loan[]>([
-    { id: 101, principal: "500.00", interest: "12.50", totalDebt: "512.50", repaid: "0.00", startTime: Date.now(), status: 0, poolToken: "USDC" },
-    { id: 98, principal: "1200.00", interest: "45.00", totalDebt: "1245.00", repaid: "1245.00", startTime: Date.now() - 86400000 * 10, status: 1, poolToken: "USDT" }
-  ])
+  const { activeAddress } = useWallet()
+  const { data: userProfile, isLoading: isUserLoading } = useUserProfile(activeAddress || undefined)
+  const { data: loansData } = useLoans(activeAddress || undefined)
+  const syncProfile = useSyncUserProfile()
+
+  const collateral = "0.00"
+  const externalValue = "0.00"
+  const creditLine = userProfile?.borrow_limit ?? 0
+  const onChainLimit = (userProfile?.borrow_limit ?? 0).toString()
+  
+  const loans = (loansData ?? []).map((l: any) => ({
+    id: l.loan_id,
+    principal: l.principal_usdc.toString(),
+    interest: "0.00", // omitted for simplicity
+    totalDebt: (l.principal_usdc).toString(),
+    repaid: l.total_repaid_usdc.toString(),
+    startTime: l.start_round,
+    status: l.status === 'active' ? 0 : l.status === 'completed' ? 1 : 2,
+    poolToken: "USDC"
+  }))
+
   const [repayOpen, setRepayOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [splitPlansData, setSplitPlansData] = useState<any[]>([
-    { _id: "s1", loanId: 101, totalAmount: 512.50, installments: [
-      { index: 0, status: "paid" },
-      { index: 1, status: "pending" },
-      { index: 2, status: "pending" }
-    ] }
-  ])
+  
+  const [splitPlansData, setSplitPlansData] = useState<any[]>([])
   const [repaymentData, setRepaymentData] = useState<any[]>([
     { _id: "r1", timestamp: Date.now() - 86400000, amount: 1245.0, loanType: "credit", txHash: "0x" + "b".repeat(64) }
   ])
@@ -42,9 +52,9 @@ export default function CreditPage() {
   // Mocked Private Score state
   const ps = {
     isInitialized: true,
-    decryptedScore: 785,
-    decryptedLimit: 25000,
-    loading: false,
+    decryptedScore: userProfile?.credit_score ?? 300,
+    decryptedLimit: userProfile?.borrow_limit ?? 0,
+    loading: isUserLoading,
     decrypting: false,
     error: null,
     contractAddress: "0x123...abc",
@@ -53,8 +63,7 @@ export default function CreditPage() {
   }
 
   const handleRefresh = async () => { 
-    setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 1000)
+    if (activeAddress) await syncProfile.mutateAsync(activeAddress)
   }
 
   const loanPages = Math.ceil(loans.length / PAGE_SIZE)
@@ -73,8 +82,8 @@ export default function CreditPage() {
           <h1 className="text-3xl tracking-tighter font-black uppercase">Credit Dashboard</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-[10px] uppercase tracking-widest font-bold transition-all disabled:opacity-40">
-            <RefreshCw className={`size-3 ${refreshing?"animate-spin":""}`} /> Sync
+          <button onClick={handleRefresh} disabled={syncProfile.isPending} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl px-4 py-2 text-[10px] uppercase tracking-widest font-bold transition-all disabled:opacity-40">
+            <RefreshCw className={`size-3 ${syncProfile.isPending?"animate-spin":""}`} /> Sync
           </button>
           <button onClick={()=>setRepayOpen(true)} className="flex items-center gap-2 bg-purple-500/70 hover:bg-purple-500/90 rounded-xl px-5 py-2.5 text-[10px] uppercase tracking-widest font-black transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]">
             <CreditCard className="size-3.5" /> Repay
@@ -110,32 +119,34 @@ export default function CreditPage() {
         </div>
       </div>
 
-      {/* Private Credit Score — Zama FHEVM */}
-      <div className="glass-card rounded-lg border border-purple-500/20 overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.05)]">
-        <div className="bg-purple-500/5 px-5 py-2.5 border-b border-purple-500/10 flex justify-between items-center">
-          <div className="flex items-center gap-2"><Lock className="size-3.5 text-purple-400" /><span className="text-[10px] text-purple-400/80 uppercase tracking-widest font-bold">Private_Credit_Score // Zama FHEVM</span></div>
-          <span className="text-[9px] text-purple-400/40 font-bold">Encrypted On-Chain</span>
+      {/* Credit Status */}
+      <div className="glass-card rounded-lg border border-primary/20 overflow-hidden shadow-2xl">
+        <div className="bg-primary/5 px-5 py-2.5 border-b border-primary/10 flex justify-between items-center">
+          <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(166,242,74,0.5)] animate-pulse" /><span className="text-[10px] text-white/60 uppercase tracking-widest font-bold">Verified_Credit_Profile</span></div>
+          <span className="text-[9px] text-primary/40 font-bold uppercase tracking-tighter">On-Chain Verified</span>
         </div>
-        <div className="p-6">
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex-1">
-              <p className="text-[10px] text-white/40 leading-relaxed mb-4">
-                Your credit score is stored <span className="text-purple-400 font-bold">fully encrypted</span> using Zama&apos;s FHEVM.
-                No one — not even the protocol — can see your score without your explicit signature consent.
-              </p>
-              {ps.decryptedScore !== null && (
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2"><Unlock className="size-3.5 text-green-400" /><span className="text-green-400 text-xl font-black tracking-tighter">{ps.decryptedScore}</span><span className="text-[9px] text-green-400/50 ml-1">SCORE</span></div>
-                  {ps.decryptedLimit !== null && (
-                    <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2"><Unlock className="size-3.5 text-blue-400" /><span className="text-blue-400 text-xl font-black tracking-tighter">{ps.decryptedLimit.toLocaleString()}</span><span className="text-[9px] text-blue-400/50 ml-1">LIMIT</span></div>
-                  )}
-                  <span className="text-[9px] text-white/30 uppercase tracking-wider">Decrypted via signature consent</span>
+        <div className="p-8">
+          <div className="flex items-center justify-between gap-12">
+            <div className="flex gap-12">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Protocol_Score</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-white tracking-tighter">{ps.decryptedScore}</span>
+                  <span className="text-[10px] font-bold text-primary/60 uppercase italic">Rank: A</span>
                 </div>
-              )}
+              </div>
+              <div className="flex flex-col gap-1 border-l border-white/10 pl-12">
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Approved_Limit</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-white tracking-tighter">${ps.decryptedLimit.toLocaleString()}</span>
+                  <span className="text-[10px] font-bold text-blue-400 uppercase italic">USDC</span>
+                </div>
+              </div>
             </div>
-            <div className="flex-shrink-0 flex flex-col items-center gap-2 opacity-60">
-              <div className="size-16 bg-purple-500/10 rounded-full flex items-center justify-center border border-purple-500/20"><Lock className="size-7 text-purple-400" /></div>
-              <span className="text-[8px] text-purple-400/40 uppercase tracking-widest">FHE Encrypted</span>
+            <div className="flex-1 max-w-sm">
+                <p className="text-[10px] text-white/40 leading-relaxed italic">
+                  Your credit profile is calculated based on on-chain repayment history and collateral health. Maintaining a high score unlocks lower interest rates and higher borrowing limits.
+                </p>
             </div>
           </div>
         </div>

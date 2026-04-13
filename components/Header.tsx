@@ -8,18 +8,20 @@ import { SidebarDrawer } from "./sidebar-drawer"
 import { cn } from "@/lib/utils"
 // Using the starter's wallet button instead of Polaris's Ethereum one
 import { WalletButton } from '@txnlab/use-wallet-ui-react'
+import { useWallet } from '@txnlab/use-wallet-react'
 
 const NAV = [
   { href: "/pools", label: "Pools" },
   { href: "/borrow", label: "Borrow" },
   { href: "/credit", label: "Credit" },
-  { href: "/positions", label: "Positions" },
+  { href: "/savings", label: "Savings" },
   { href: "/activity", label: "Activity" },
   { href: "/faucet", label: "Faucet" },
 ]
 
 export function Header() {
   const pathname = usePathname()
+  const { activeAddress } = useWallet()
   const [open, setOpen] = useState(false)
 
   return (
@@ -34,14 +36,14 @@ export function Header() {
           <SidebarDrawer open={open} onOpenChange={setOpen} />
           <Link href="/" className="font-semibold tracking-wide">
             <span className="inline-flex items-center gap-2">
-              <Image src="/logo.png" alt="Logo" width={120} height={32} className="h-8 w-auto max-h-8" />
+              <Image src="/text-logo.png" alt="Irion Logo" width={140} height={40} className="h-10 w-auto" />
             </span>
           </Link>
         </div>
 
         {/* Center: nav, centered horizontally */}
         <nav className="hidden sm:flex items-center justify-center gap-2">
-          {NAV.map((n) => (
+          {activeAddress && NAV.map((n) => (
             <Link
               key={n.href}
               href={n.href}

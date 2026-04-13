@@ -6,13 +6,7 @@ import { ShieldCheck, Lock, TrendingUp, Info, ChevronRight } from "lucide-react"
 import { TokenIcon } from "@/components/token-icon"
 import { LendingActionModal, type ModalMode, type PoolInfo } from "@/components/lending-action-modal"
 
-const MOCK_POOLS = [
-  { symbol: "WETH", name: "Wrapped Ethereum", supplyApy: 4.2, borrowApy: 6.8, liquidity: 1250000 },
-  { symbol: "BTC", name: "Bitcoin", supplyApy: 3.1, borrowApy: 5.4, liquidity: 890000 },
-  { symbol: "USDC", name: "USD Coin", supplyApy: 8.5, borrowApy: 12.2, liquidity: 5400000 },
-  { symbol: "USDT", name: "Tether", supplyApy: 8.2, borrowApy: 11.8, liquidity: 3200000 },
-  { symbol: "BNB", name: "Binance Coin", supplyApy: 2.8, borrowApy: 4.9, liquidity: 450000 },
-]
+import { usePoolStats } from "@/lib/hooks/usePoolStats"
 
 function formatUsd(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
@@ -23,12 +17,14 @@ function formatUsd(value: number): string {
 export default function PoolsPage() {
   const [modal, setModal] = useState<{ pool: PoolInfo; mode: ModalMode } | null>(null)
   
-  // Mocked state for UI-only starter
-  const poolsLoading = false
-  const poolsError = null
-  const statsLoading = false
-  const totalLiquidity = 12450192
-  const avgSupplyApy = 5.42
+  const { data: poolStats, isLoading: statsLoading } = usePoolStats()
+  
+  const totalLiquidity = poolStats?.total_deposits ?? 0
+  const avgSupplyApy = poolStats?.apy ?? 0
+
+  const activePools = [
+    { symbol: "USDC", name: "USD Coin", supplyApy: poolStats?.apy ?? 0, borrowApy: (poolStats?.apy ?? 0) * 1.5, liquidity: poolStats?.total_deposits ?? 0 },
+  ]
 
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">
@@ -42,7 +38,7 @@ export default function PoolsPage() {
 
       <div className="flex flex-col gap-2">
         <span className="font-mono text-[10px] tracking-[0.4em] text-primary/60 uppercase">
-          Confidential_Markets // active_pools
+          Lending_Pools // active_markets
         </span>
         <h1 className="text-white text-3xl tracking-tighter font-black uppercase">Lending Terminals</h1>
       </div>
@@ -67,7 +63,7 @@ export default function PoolsPage() {
         </div>
         <div className="bg-[#05080f]/40 border border-border/40 rounded-2xl p-6 backdrop-blur-md flex flex-col gap-2">
           <span className="text-[10px] text-foreground/40 uppercase tracking-widest">Active_Borrows</span>
-          <div className="text-3xl font-bold tracking-tight">Private</div>
+          <div className="text-3xl font-bold tracking-tight">$0.00</div>
         </div>
       </div>
 
@@ -82,7 +78,7 @@ export default function PoolsPage() {
         </div>
 
         <div className="divide-y divide-border/10">
-          {MOCK_POOLS.map((pool) => {
+          {activePools.map((pool) => {
             const poolInfo: PoolInfo = {
               symbol: pool.symbol,
               name: pool.name,
@@ -114,7 +110,7 @@ export default function PoolsPage() {
                 </div>
                 <div className="col-span-2 text-right">
                   <div className="text-sm font-mono text-white/40 flex items-center justify-end gap-1.5 uppercase">
-                    <Lock size={12} className="text-primary/40" />Private
+                    {formatUsd(pool.liquidity)}
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-end items-center gap-2">
@@ -141,9 +137,9 @@ export default function PoolsPage() {
       <div className="flex items-start gap-4 p-6 rounded-2xl bg-primary/5 border border-primary/10">
         <Info className="text-primary flex-shrink-0" size={20} />
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary">Confidential Protocol Notice</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-primary">Protocol Transparency Notice</p>
           <p className="text-[11px] text-foreground/50 leading-relaxed">
-            All liquidity data is processed on-chain using Fully Homomorphic Encryption. Individual pool sizes are obfuscated to protect market depth and prevent front-running.
+            All lending and borrowing activities are recorded on-chain. Market statistics are updated in real-time to ensure full depth disclosure and fair interest rates.
           </p>
         </div>
       </div>

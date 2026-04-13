@@ -16,7 +16,7 @@ export function LandingPage() {
                             <path d="M 500, 500 m -400, 0 a 400,400 0 1,1 800,0 a 400,400 0 1,1 -800,0" fill="transparent" id="circlePath"></path>
                             <text className="text-ring">
                                 <textPath xlinkHref="#circlePath">
-                                    PRIVACY_IS_POWER • IRION_NETWORK • CONFIDENTIAL_LENDING • 
+                                    TRANSPARENCY_IS_POWER • IRION_NETWORK • LENDING_ECOSYSTEM • 
                                 </textPath>
                             </text>
                         </svg>
@@ -47,10 +47,10 @@ export function LandingPage() {
                             IRION NETWORK
                         </h1>
                         <p className="text-slate-200 font-mono text-lg tracking-widest uppercase max-w-3xl mx-auto mb-4">
-                            Confidential Lending & Private Swaps.
+                            Lending & Swaps.
                         </p>
                         <p className="text-slate-400 font-mono text-sm tracking-widest uppercase max-w-2xl mx-auto">
-                            Powered by Zama fhEVM. Secure your assets with on-chain-encryption.
+                            Powered by Algorand. Secure your assets with on-chain transparency.
                         </p>
                     </div>
 
