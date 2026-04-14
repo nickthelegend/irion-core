@@ -1,4 +1,21 @@
 import { algodClient, deployments, getCreditScoreClient, getLendingPoolClient, getBNPLCreditClient } from './client'
+import { AlgorandClient } from '@algorandfoundation/algokit-utils'
+
+// Read asset balance for a wallet address from chain
+export async function fetchAssetBalance(address: string, assetId: number): Promise<number> {
+  console.log('[IRION-DEBUG] fetchAssetBalance initiated', { address, assetId })
+  try {
+    const accountInfo = await algodClient.accountAssetInformation(address, assetId).do()
+    if (!accountInfo.assetHolding) return 0
+    const amount = Number(accountInfo.assetHolding.amount)
+    // Assuming USDC decimals = 6
+    return amount / 1_000_000
+  } catch (e) {
+    console.warn('[IRION-DEBUG] fetchAssetBalance error (likely not opted in)', e)
+    return 0
+  }
+}
+
 
 // Read credit profile for a wallet address from chain
 export async function fetchCreditProfileFromChain(address: string) {
@@ -66,9 +83,9 @@ export async function fetchLenderPosition(address: string) {
   try {
     const result = await client.send.getLenderPosition({ args: [address] })
     if (!result.return) throw new Error('No return')
-    const pos = { 
-      deposit_amount: result.return[0], 
-      accrued_yield: result.return[1] 
+    const pos = {
+      deposit_amount: result.return[0],
+      accrued_yield: result.return[1]
     }
     console.log('[IRION-DEBUG] fetchLenderPosition result', pos)
     return pos

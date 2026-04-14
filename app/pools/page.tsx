@@ -7,6 +7,10 @@ import { TokenIcon } from "@/components/token-icon"
 import { LendingActionModal, type ModalMode, type PoolInfo } from "@/components/lending-action-modal"
 
 import { usePoolStats } from "@/lib/hooks/usePoolStats"
+import { useAssetBalance } from "@/lib/hooks/useBalance"
+import { useWallet } from "@txnlab/use-wallet-react"
+import { deployments } from "@/lib/algorand/client"
+
 
 function formatUsd(value: number): string {
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
@@ -17,7 +21,10 @@ function formatUsd(value: number): string {
 export default function PoolsPage() {
   const [modal, setModal] = useState<{ pool: PoolInfo; mode: ModalMode } | null>(null)
   
+  const { activeAddress } = useWallet()
   const { data: poolStats, isLoading: statsLoading } = usePoolStats()
+  const { data: usdcBalance } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
+
   
   const totalLiquidity = poolStats?.total_deposits ?? 0
   const avgSupplyApy = poolStats?.apy ?? 0
@@ -133,6 +140,7 @@ export default function PoolsPage() {
           })}
         </div>
       </div>
+
 
       <div className="flex items-start gap-4 p-6 rounded-2xl bg-primary/5 border border-primary/10">
         <Info className="text-primary flex-shrink-0" size={20} />

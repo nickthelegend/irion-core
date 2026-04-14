@@ -5,6 +5,10 @@ import { X, Loader2, CheckCircle2, ShieldCheck, AlertCircle, ExternalLink, Info 
 import { TokenIcon } from "@/components/token-icon"
 import { cn } from "@/lib/utils"
 import { useDepositToPool, useWithdrawFromPool } from "@/lib/hooks/useContractActions"
+import { useAssetBalance } from "@/lib/hooks/useBalance"
+import { useWallet } from "@txnlab/use-wallet-react"
+import { deployments } from "@/lib/algorand/client"
+
 
 export type ModalMode = "supply" | "borrow"
 
@@ -35,7 +39,10 @@ export function LendingActionModal({
   const [amount, setAmount] = useState("")
   const [logs, setLogs] = useState<TxLog[]>([])
   const [done, setDone] = useState(false)
-  const [walletBalance, setWalletBalance] = useState<string | null>("100.00") // Mocked balance
+  const { activeAddress } = useWallet()
+  const { data: balanceData } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
+  const walletBalance = balanceData !== undefined ? balanceData.toFixed(2) : "0.00"
+
   const [txHash, setTxHash] = useState<string | null>(null)
 
   const isSupply = mode === "supply"
