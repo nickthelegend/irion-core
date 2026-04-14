@@ -55,24 +55,45 @@ export async function fetchBorrowLimit(address: string): Promise<number> {
 
 // Read pool stats
 export async function fetchPoolStats() {
-  console.log('[IRION-DEBUG] fetchPoolStats initiated')
+  console.log('[IRION-DEBUG] fetchPoolStats initiated using App ID:', deployments.lending_pool_app_id)
   const client = getLendingPoolClient()
   try {
+    // Try ABI method first
     const result = await client.send.getPoolStats({ args: [] })
-    if (!result.return) {
-      console.warn('[IRION-DEBUG] fetchPoolStats - no return value')
-      return null
+    console.log('[IRION-DEBUG] fetchPoolStats ABI result:', result.return)
+    
+    if (result.return) {
+      return {
+        total_deposits: result.return[0],
+        total_borrowed: result.return[1],
+        utilization: result.return[2]
+      }
     }
-    const stats = {
-      total_deposits: result.return[0],
-      total_borrowed: result.return[1],
-      utilization: result.return[2]
+
+    // Fallback: Read global state directly
+    console.log('[IRION-DEBUG] falling back to global state read')
+    const state = await client.state.global.getAll()
+    console.log('[IRION-DEBUG] global state read:', state)
+    
+    return {
+      total_deposits: state.totalDeposits ?? BigInt(0),
+      total_borrowed: state.totalBorrowed ?? BigInt(0),
+      utilization: state.utilizationRate ?? BigInt(0)
     }
-    console.log('[IRION-DEBUG] fetchPoolStats result', stats)
-    return stats
   } catch (e) {
     console.error('[IRION-DEBUG] fetchPoolStats error', e)
-    return null
+    // Fallback to direct state even on error
+    try {
+      const state = await client.state.global.getAll()
+      return {
+        total_deposits: state.totalDeposits ?? BigInt(0),
+        total_borrowed: state.totalBorrowed ?? BigInt(0),
+        utilization: BigInt(0)
+      }
+    } catch (e2) {
+      console.error('[IRION-DEBUG] double failure in fetchPoolStats', e2)
+      return null
+    }
   }
 }
 

@@ -27,6 +27,7 @@ export default function PoolsPage() {
 
   // Debug logging
   useEffect(() => {
+    console.log('[IRION-DEBUG] PoolsPage deployed App ID:', deployments.lending_pool_app_id)
     if (poolStatsError) {
       console.error('Pool stats error:', poolStatsError)
     }

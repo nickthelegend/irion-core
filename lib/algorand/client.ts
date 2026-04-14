@@ -27,6 +27,8 @@ export const deployments = {
   bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 758795511),
   merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 758795523),
 }
+console.log('[IRION-DEBUG] Loaded deployments:', deployments)
+
 
 import { CreditScoreFactory } from './clients/CreditScoreClient'
 import { LendingPoolFactory } from './clients/LendingPoolClient'
