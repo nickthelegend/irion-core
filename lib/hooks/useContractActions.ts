@@ -122,10 +122,10 @@ export function useDepositToPool() {
       console.log('DEBUG: useDepositToPool - success! txIds:', result.txIds)
       return result.txIds[0]
     },
-    onSuccess: () => {
-      console.log('DEBUG: useDepositToPool - onSuccess - invalidating queries')
-      qc.invalidateQueries({ queryKey: ['pool-stats'] })
-      qc.invalidateQueries({ queryKey: ['lender-position', activeAddress] })
+    onSuccess: async () => {
+      console.log('DEBUG: useDepositToPool - onSuccess - refetching queries')
+      await qc.refetchQueries({ queryKey: ['pool-stats'], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['lender-position', activeAddress], type: 'active' })
       if (activeAddress) {
         fetch(`/api/user/${activeAddress}/sync`, { method: 'POST' })
           .then(() => console.log('DEBUG: useDepositToPool - sync triggered'))

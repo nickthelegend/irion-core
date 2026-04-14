@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ShieldCheck, Lock, TrendingUp, Info, ChevronRight } from "lucide-react"
 import { TokenIcon } from "@/components/token-icon"
@@ -22,8 +22,18 @@ export default function PoolsPage() {
   const [modal, setModal] = useState<{ pool: PoolInfo; mode: ModalMode } | null>(null)
   
   const { activeAddress } = useWallet()
-  const { data: poolStats, isLoading: statsLoading } = usePoolStats()
+  const { data: poolStats, isLoading: statsLoading, error: poolStatsError } = usePoolStats()
   const { data: usdcBalance } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
+
+  // Debug logging
+  useEffect(() => {
+    if (poolStatsError) {
+      console.error('Pool stats error:', poolStatsError)
+    }
+    if (poolStats) {
+      console.log('Pool stats loaded:', poolStats)
+    }
+  }, [poolStats, poolStatsError])
 
   
   const totalLiquidity = poolStats?.total_deposits ?? 0
