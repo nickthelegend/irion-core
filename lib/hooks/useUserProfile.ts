@@ -6,11 +6,14 @@ export function useUserProfile(address: string | undefined) {
     queryKey: ['user', address],
     queryFn: async () => {
       if (!address) return null
-      const res = await fetch(`/api/user/${address}`)
+      const res = await fetch(`/api/user/${address}?t=${Date.now()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error('Failed to fetch user profile')
       return res.json()
     },
     enabled: !!address,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -22,8 +25,8 @@ export function useSyncUserProfile() {
       if (!res.ok) throw new Error('Sync failed')
       return res.json()
     },
-    onSuccess: (_, address) => {
-      qc.invalidateQueries({ queryKey: ['user', address] })
+    onSuccess: async (_, address) => {
+      await qc.refetchQueries({ queryKey: ['user', address], type: 'active' })
     },
   })
 }

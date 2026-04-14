@@ -22,6 +22,15 @@ export default function CreditPage() {
   const { data: loansData } = useLoans(activeAddress || undefined)
   const syncProfile = useSyncUserProfile()
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[CREDIT-PAGE] CreditScore App ID:', process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID)
+    console.log('[CREDIT-PAGE] activeAddress:', activeAddress)
+    console.log('[CREDIT-PAGE] userProfile:', userProfile)
+    console.log('[CREDIT-PAGE] borrow_limit:', userProfile?.borrow_limit)
+    console.log('[CREDIT-PAGE] credit_score:', userProfile?.credit_score)
+  }, [activeAddress, userProfile])
+
   const collateral = "0.00"
   const externalValue = "0.00"
   const creditLine = userProfile?.borrow_limit ?? 0

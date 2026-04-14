@@ -171,10 +171,11 @@ export function useInitiateLoan() {
       console.log('DEBUG: useInitiateLoan - success', { txId: result.txIds[0], loanId: Number(result.return ?? BigInt(0)) })
       return { txId: result.txIds[0], loanId: Number(result.return ?? BigInt(0)) }
     },
-    onSuccess: () => {
-      console.log('DEBUG: useInitiateLoan - onSuccess - invalidating queries')
-      qc.invalidateQueries({ queryKey: ['loans', activeAddress] })
-      qc.invalidateQueries({ queryKey: ['user', activeAddress] })
+    onSuccess: async () => {
+      console.log('DEBUG: useInitiateLoan - onSuccess - refetching queries')
+      await qc.refetchQueries({ queryKey: ['loans', activeAddress], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['user', activeAddress], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['pool-stats'], type: 'active' })
     },
     onError: (e) => {
       console.error('DEBUG: useInitiateLoan - mutation error', e)
@@ -216,11 +217,12 @@ export function useMakePayment() {
       console.log('DEBUG: useMakePayment - success', result.txIds[0])
       return result.txIds[0]
     },
-    onSuccess: (_, { loan_id }) => {
-      console.log('DEBUG: useMakePayment - onSuccess - invalidating queries')
-      qc.invalidateQueries({ queryKey: ['loan', loan_id] })
-      qc.invalidateQueries({ queryKey: ['loans', activeAddress] })
-      qc.invalidateQueries({ queryKey: ['user', activeAddress] })
+    onSuccess: async (_, { loan_id }) => {
+      console.log('DEBUG: useMakePayment - onSuccess - refetching queries')
+      await qc.refetchQueries({ queryKey: ['loan', loan_id], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['loans', activeAddress], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['user', activeAddress], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['pool-stats'], type: 'active' })
       if (activeAddress) {
         fetch(`/api/user/${activeAddress}/sync`, { method: 'POST' })
           .then(() => console.log('DEBUG: useMakePayment - sync triggered'))
@@ -258,10 +260,10 @@ export function useWithdrawFromPool() {
       console.log('DEBUG: useWithdrawFromPool - success', result.txIds[0])
       return result.txIds[0]
     },
-    onSuccess: () => {
-      console.log('DEBUG: useWithdrawFromPool - onSuccess - invalidating queries')
-      qc.invalidateQueries({ queryKey: ['pool-stats'] })
-      qc.invalidateQueries({ queryKey: ['lender-position', activeAddress] })
+    onSuccess: async () => {
+      console.log('DEBUG: useWithdrawFromPool - onSuccess - refetching queries')
+      await qc.refetchQueries({ queryKey: ['pool-stats'], type: 'active' })
+      await qc.refetchQueries({ queryKey: ['lender-position', activeAddress], type: 'active' })
     },
     onError: (e) => {
       console.error('DEBUG: useWithdrawFromPool - mutation error', e)

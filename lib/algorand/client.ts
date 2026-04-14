@@ -21,11 +21,11 @@ export const indexerClient = new algosdk.Indexer(
 )
 
 export const deployments = {
-  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 758795478),
-  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 758795481),
-  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 758795495),
-  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 758795511),
-  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 758795523),
+  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 1031),
+  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 1032),
+  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 1035),
+  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 1044),
+  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 1047),
 }
 console.log('[IRION-DEBUG] Loaded deployments:', deployments)
 
@@ -35,11 +35,14 @@ import { LendingPoolFactory } from './clients/LendingPoolClient'
 import { BnplCreditFactory } from './clients/BNPLCreditClient'
 import { MerchantEscrowFactory } from './clients/MerchantEscrowClient'
 
-const DUMMY_SENDER = 'S6MCEVCQXBA55VQLVF4PST7L7FDKSR2FB23X323EBESYGOI4K7EMWFTBHM' // LocalNet Dispenser Address
+// LocalNet Dispenser Address - this account should be funded
+const DUMMY_SENDER = 'HV4V3JKLUBMBIZHBAE3JVVYVRIW7W7Q3HE6DQSOJE5TOLG57TLAERWZHL4'
 
 export function getCreditScoreClient(sender?: string) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
-  return new CreditScoreFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.credit_score_app_id) })
+  const effectiveSender = sender ?? DUMMY_SENDER
+  console.log('[IRION-DEBUG] getCreditScoreClient using sender:', effectiveSender)
+  return new CreditScoreFactory({ algorand, defaultSender: effectiveSender }).getAppClientById({ appId: BigInt(deployments.credit_score_app_id) })
 }
 
 export function getLendingPoolClient(sender?: string) {

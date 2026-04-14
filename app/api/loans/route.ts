@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectDB } from '@/lib/db/mongoose'
 import { Loan } from '@/lib/db/models/loan.model'
 import { fetchUserLoans, fetchLoan } from '@/lib/algorand/readChain'
-import { encodeAddress } from 'algosdk'
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +29,7 @@ export async function GET(req: NextRequest) {
           {
             loan_id: id,
             borrower_address: borrower,
-            merchant_address: onChain.merchant ? encodeAddress(onChain.merchant) : '',
+            merchant_address: onChain.merchant || '',
             principal_usdc: Number(onChain.principal ?? BigInt(0)) / 1_000_000,
             total_repaid_usdc: Number(onChain.total_repaid ?? BigInt(0)) / 1_000_000,
             installment_amount_usdc: Number(onChain.installment_amount ?? BigInt(0)) / 1_000_000,
