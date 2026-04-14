@@ -47,7 +47,7 @@ export function SidebarDrawer({ open, onOpenChange }: { open?: boolean; onOpenCh
         <SheetHeader className="p-6 pb-2">
           <SheetTitle className="sr-only">Menu</SheetTitle>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black tracking-tighter text-primary italic">Polaris//</span>
+            <span className="text-xl font-black tracking-tighter text-primary italic">Irion//</span>
           </div>
         </SheetHeader>
 

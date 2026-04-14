@@ -1,10 +1,13 @@
 "use client"
-
-import { useState, useRef, useEffect } from "react"
-import { ChevronDown, Check, Info, Loader2, CheckCircle2, AlertTriangle, ShieldCheck } from "lucide-react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { ChevronDown, Check, Info, Loader2, CheckCircle2, AlertTriangle, ShieldCheck, Zap } from "lucide-react"
 import { TokenIcon } from "@/components/token-icon"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { useWallet } from "@txnlab/use-wallet-react"
+import { algodClient, deployments } from "@/lib/algorand/client"
+import { AlgorandClient } from "@algorandfoundation/algokit-utils"
+import algosdk from "algosdk"
 
 const FAUCET_TOKENS = [
   { symbol: "WETH", decimals: 18, max: 100_000_000 },
@@ -51,11 +54,78 @@ function TokenDropdown({ options, value, onChange }: {
 }
 
 export default function FaucetPage() {
+  const { activeAddress, transactionSigner } = useWallet()
   const [token, setToken] = useState("USDC")
   const [amount, setAmount] = useState("")
   const [recipient, setRecipient] = useState("")
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [txHash, setTxHash] = useState("")
+  
+  // Opt-in state
+  const [isOptedIn, setIsOptedIn] = useState<boolean | null>(null)
+  const [checkingOptIn, setCheckingOptIn] = useState(false)
+
+  // Use the connected address as default recipient
+  useEffect(() => {
+    if (activeAddress && !recipient) {
+      setRecipient(activeAddress)
+    }
+  }, [activeAddress, recipient])
+
+  const checkOptIn = useCallback(async () => {
+    if (!activeAddress || token !== "USDC") {
+      setIsOptedIn(null)
+      return
+    }
+
+    setCheckingOptIn(true)
+    try {
+      console.log("[IRION-DEBUG] Checking opt-in for", activeAddress, "Asset:", deployments.usdc_asset_id)
+      await algodClient.accountAssetInformation(activeAddress, deployments.usdc_asset_id).do()
+      setIsOptedIn(true)
+      console.log("[IRION-DEBUG] User is opted in to USDC")
+    } catch (e) {
+      setIsOptedIn(false)
+      console.log("[IRION-DEBUG] User is NOT opted in to USDC")
+    } finally {
+      setCheckingOptIn(false)
+    }
+  }, [activeAddress, token])
+
+  useEffect(() => {
+    checkOptIn()
+  }, [checkOptIn])
+
+  // Opt-in transaction (signed by user's wallet)
+  const handleOptIn = async () => {
+    if (!activeAddress || !transactionSigner) return
+    setStatus("loading")
+    
+    try {
+      const sp = await algodClient.getTransactionParams().do()
+      
+      // Opt-in = 0-amount transfer to self
+      const algorand = AlgorandClient.fromClients({ algod: algodClient })
+      const optInTxn = await algorand.createTransaction.assetTransfer({
+        sender: activeAddress,
+        receiver: activeAddress,
+        assetId: BigInt(deployments.usdc_asset_id),
+        amount: BigInt(0),
+      })
+      
+      const [signedTxn] = await transactionSigner([optInTxn], [0])
+      await algodClient.sendRawTransaction(signedTxn).do()
+      await algosdk.waitForConfirmation(algodClient, optInTxn.txID(), 4)
+      
+      toast.success('Opted in to iUSDC!')
+      setIsOptedIn(true)
+    } catch (err: any) {
+      console.error("[Faucet] Opt-in Error:", err)
+      toast.error(`Opt-in failed: ${err.message}`)
+    } finally {
+      setStatus("idle")
+    }
+  }
 
   const selected = FAUCET_TOKENS.find(t => t.symbol === token) ?? FAUCET_TOKENS[0]
   const parsedAmount = parseFloat(amount)
@@ -63,33 +133,57 @@ export default function FaucetPage() {
   const isValidAmount = !isNaN(parsedAmount) && parsedAmount > 0 && !isOverMax
   const canSubmit = isValidAmount && recipient.length > 0
 
+  // Mint/faucet call (after opt-in confirmed)
   const handleDispense = async () => {
-    if (!canSubmit) return
+    if (!activeAddress) return
     setStatus("loading")
-    console.log("[IRION-DEBUG] Faucet Dispense Attempt:", { recipient, amount, token })
     
     try {
-      if (token !== "USDC") {
-        console.log("[IRION-DEBUG] Unsupported token selected:", token)
-        throw new Error("Only USDC testnet minting is currently supported.")
+      // Re-verify opt-in just in case
+      const opted = await (async () => {
+        try {
+          await algodClient.accountAssetInformation(activeAddress, deployments.usdc_asset_id).do()
+          return true
+        } catch {
+          return false
+        }
+      })()
+
+      if (!opted) {
+        toast.error('Please opt-in to iUSDC first')
+        setStatus("idle")
+        return
       }
+      
       const res = await fetch('/api/faucet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: recipient })
+        body: JSON.stringify({ address: activeAddress }),
       })
+      
       const data = await res.json()
-      console.log("[IRION-DEBUG] Faucet API Response:", data)
-
-      if (!res.ok) throw new Error(data.error || "Failed to mint")
-
+      
+      if (!res.ok) {
+        if (data.error === 'not_opted_in') {
+          toast.error('Opt-in to iUSDC required')
+          setIsOptedIn(false)
+        } else {
+          toast.error(data.message ?? data.error)
+        }
+        setStatus("error")
+        return
+      }
+      
       setStatus("success")
       setTxHash(data.tx_id)
-      console.log("[IRION-DEBUG] Faucet Success! TX:", data.tx_id)
-      toast.success(`Minted ${amount} ${token} successfully! TX: ${data.tx_id.slice(0,8)}...`)
+      toast.success(`Received ${data.amount_iusdc.toLocaleString()} iUSDC!`)
       setAmount("")
+
+      // Sync user data
+      console.log("[Faucet] Syncing user data...")
+      await fetch(`/api/user/${activeAddress}/sync`, { method: 'POST' })
     } catch (err: any) {
-      console.error("[IRION-DEBUG] Faucet Error:", err)
+      console.error("[Faucet] Error:", err)
       setStatus("error")
       toast.error(err.message)
     }
@@ -141,18 +235,33 @@ export default function FaucetPage() {
               <span className="text-[10px] font-black uppercase tracking-tighter text-primary/40">Tokens_minted_directly_via_mock_interface</span>
             </div>
 
-            <button 
-              onClick={handleDispense} 
-              disabled={status === "loading" || !canSubmit}
-              className={cn(
-                "w-full py-5 rounded-2xl font-black text-sm uppercase tracking-tighter transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(166,242,74,0.1)]",
-                status === "loading" || !canSubmit ? "bg-white/5 text-foreground/20" : "bg-primary text-black"
-              )}
-            >
-              {status === "loading"
-                ? <><Loader2 size={16} className="animate-spin" /> MINTING_RESOURCES...</>
-                : `MINT_${amount ? Number(amount).toLocaleString() : "—"}_${token}`}
-            </button>
+            {!activeAddress ? (
+              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-red-400 text-[10px] font-bold uppercase tracking-widest text-center">
+                Please connect your wallet first
+              </div>
+            ) : token === "USDC" && isOptedIn === false ? (
+              <button 
+                onClick={handleOptIn}
+                disabled={status === "loading"}
+                className="w-full py-5 rounded-2xl font-black text-sm uppercase tracking-tighter transition-all flex items-center justify-center gap-3 bg-primary text-black hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(166,242,74,0.3)]"
+              >
+                {status === "loading" ? <><Loader2 size={16} className="animate-spin" /> OPTING_IN...</> : "OPT-IN_TO_USDC_CONDUIT"}
+              </button>
+            ) : (
+              <button 
+                onClick={handleDispense} 
+                disabled={status === "loading" || !canSubmit || checkingOptIn}
+                className={cn(
+                  "w-full py-5 rounded-2xl font-black text-sm uppercase tracking-tighter transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_20px_rgba(166,242,74,0.1)]",
+                  status === "loading" || !canSubmit || checkingOptIn ? "bg-white/5 text-foreground/20" : "bg-primary text-black"
+                )}
+              >
+                {checkingOptIn ? <><Loader2 size={16} className="animate-spin" /> VERIFYING_OPT_IN...</> :
+                 status === "loading"
+                  ? <><Loader2 size={16} className="animate-spin" /> MINTING_RESOURCES...</>
+                  : `MINT_${amount ? Number(amount).toLocaleString() : "—"}_${token}`}
+              </button>
+            )}
 
             {status === "success" && (
               <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-2xl flex flex-col gap-2">

@@ -9,6 +9,9 @@ import { useLenderPosition } from '@/lib/hooks/useLenderPosition'
 import { useUserProfile } from '@/lib/hooks/useUserProfile'
 import { SetupProtocol } from "@/components/setup-protocol"
 import { useTransactions } from '@/lib/hooks/useTransactions'
+import { getBNPLCreditClient, deployments } from '@/lib/algorand/client'
+import { algo } from '@algorandfoundation/algokit-utils'
+import algosdk from 'algosdk'
 
 const BORROW_ASSETS = [
   { symbol: "USDC", color: "bg-blue-500" },
@@ -65,6 +68,7 @@ export default function BorrowPage() {
   const [duration, setDuration] = useState("30")
   const [borrowAsset, setBorrowAsset] = useState("USDC")
   const [collateralAsset, setCollateralAsset] = useState("WETH")
+  const [installments, setInstallments] = useState("4")
   const [loading, setLoading] = useState(false)
 
   const { activeAddress } = useWallet()
@@ -76,17 +80,38 @@ export default function BorrowPage() {
   const debtBalance = userProfile?.total_borrowed ?? 0
 
   const handleSubmit = async () => {
-    if ((!borrowAmount || parseFloat(borrowAmount) <= 0) && (!collateralAmount || parseFloat(collateralAmount) <= 0)) return
+    if (!borrowAmount || parseFloat(borrowAmount) <= 0 || !activeAddress) return
     setLoading(true)
-    console.log("[IRION-DEBUG] Borrow Submission:", { borrowAmount, borrowAsset, collateralAmount, collateralAsset, duration, maxRate })
+    console.log("[IRION-DEBUG] Borrow Submission:", { borrowAmount, borrowAsset, installments, duration, maxRate })
     
-    setTimeout(() => {
-      setLoading(false)
-      console.log("[IRION-DEBUG] Borrow submission success (Mock)")
-      toast.success("Borrow intent submitted successfully (Mock)")
+    try {
+      const client = getBNPLCreditClient(activeAddress)
+      const amountMicro = BigInt(parseFloat(borrowAmount) * 1_000_000)
+      
+      // For the demo "Execute Borrow" page, we'll use a local fallback merchant.
+      // In a real shopping flow, this would be the actual merchant address.
+      const demoMerchant = activeAddress 
+
+      console.log("[IRION-DEBUG] Calling initiate_loan...")
+      const result = await client.send.initiateLoan({
+        args: {
+          merchant: demoMerchant,
+          amount: amountMicro,
+          numInstallments: BigInt(installments)
+        },
+        extraFee: algo(0.002) // Cover inner borrow call
+      })
+
+      console.log("[IRION-DEBUG] Loan Initiated:", result.transaction.txID())
+      toast.success(`Loan #${result.confirmation?.applicationIndex || 'created'} successfully!`)
       setBorrowAmount("")
       setCollateralAmount("")
-    }, 2000)
+    } catch (err: any) {
+      console.error("[IRION-DEBUG] Borrow Error:", err)
+      toast.error(`Borrow failed: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
 
@@ -134,10 +159,10 @@ export default function BorrowPage() {
                 </div>
               </div>
               <div className="bg-[#05080f]/60 border border-border/20 rounded-2xl p-5 space-y-1">
-                <label className="text-xs text-foreground/40">Duration (days)</label>
+                <label className="text-xs text-foreground/40">Installments</label>
                 <div className="flex items-center gap-2">
-                  <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="flex-1 bg-transparent text-2xl font-bold text-foreground focus:outline-none min-w-0" />
-                  <span className="text-foreground/30 text-sm">d</span>
+                  <input type="number" value={installments} onChange={e => setInstallments(e.target.value)} className="flex-1 bg-transparent text-2xl font-bold text-foreground focus:outline-none min-w-0" />
+                  <span className="text-foreground/30 text-sm">#</span>
                 </div>
               </div>
             </div>

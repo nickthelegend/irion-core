@@ -87,6 +87,48 @@ function ManageModal({ pos, onClose }: { pos: Position; onClose: () => void }) {
         console.log("[IRION-DEBUG] Repay TX result confirmed:", result.transaction.txID())
         log(`[TX] Submitted Hash: ${result.transaction.txID().slice(0, 10)}...`, "ok")
         log(`[TX] Confirmed in round ${result.confirmation?.confirmedRound}`, "ok")
+      } else if (action === "Supply") {
+        console.log("[IRION-DEBUG] Processing Supply for", amount, "USDC")
+        const client = getLendingPoolClient(activeAddress)
+        const amountMicro = BigInt(parseFloat(amount) * 1_000_000)
+        
+        // 1. Transaction to send USDC to Pool
+        const sp = await algodClient.getTransactionParams().do()
+        const axfer = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+          sender: activeAddress,
+          receiver: algosdk.getApplicationAddress(deployments.lending_pool_app_id),
+          amount: amountMicro,
+          assetIndex: deployments.usdc_asset_id,
+          suggestedParams: sp,
+        })
+
+        // 2. Call deposit method
+        log(`[TX] Calling deposit(axfer)...`, "info")
+        console.log("[IRION-DEBUG] Sending deposit transaction group...")
+        const result = await client.send.deposit({
+          args: { payment: axfer },
+          extraFee: algo(0.001)
+        })
+        
+        console.log("[IRION-DEBUG] Supply TX result confirmed:", result.transaction.txID())
+        log(`[TX] Submitted Hash: ${result.transaction.txID().slice(0, 10)}...`, "ok")
+        log(`[TX] Confirmed in round ${result.confirmation?.confirmedRound}`, "ok")
+      } else if (action === "Withdraw") {
+        console.log("[IRION-DEBUG] Processing Withdraw for", amount, "LP Tokens")
+        const client = getLendingPoolClient(activeAddress)
+        const amountMicro = BigInt(parseFloat(amount) * 1_000_000)
+
+        // Call withdraw method
+        log(`[TX] Calling withdraw(${amount} LP tokens)...`, "info")
+        console.log("[IRION-DEBUG] Sending withdraw transaction...")
+        const result = await client.send.withdraw({
+          args: { lpAmount: amountMicro },
+          extraFee: algo(0.002) // Cover inner asset transfer
+        })
+        
+        console.log("[IRION-DEBUG] Withdraw TX result confirmed:", result.transaction.txID())
+        log(`[TX] Submitted Hash: ${result.transaction.txID().slice(0, 10)}...`, "ok")
+        log(`[TX] Confirmed in round ${result.confirmation?.confirmedRound}`, "ok")
       } else {
         console.log("[IRION-DEBUG] Action not implemented (mocked):", action)
         log(`[MOCK] ${action} executed successfully (UI only)`, "ok")

@@ -1,47 +1,113 @@
 import { NextRequest, NextResponse } from 'next/server'
 import algosdk from 'algosdk'
-import { AlgorandClient, algo } from '@algorandfoundation/algokit-utils'
-import { deployments } from '@/lib/algorand/client'
+
+const DEPLOYER_MNEMONIC = process.env.FAUCET_MNEMONIC!
+const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost'
+const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 4001)
+const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? 'a'.repeat(64)
+const IUSDC_ASSET_ID = Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 0)
+const FAUCET_AMOUNT = 10_000 * 1_000_000 // 10,000 iUSDC in microUnits
 
 export async function POST(req: NextRequest) {
   try {
-    const { address } = await req.json()
-    if (!address) return NextResponse.json({ error: 'address required' }, { status: 400 })
+    const body = await req.json()
+    const { address } = body
 
-    const mnemonic = process.env.FAUCET_MNEMONIC
-    if (!mnemonic) return NextResponse.json({ error: 'Faucet not configured' }, { status: 500 })
+    console.log('[Faucet] Request body:', body)
+    console.log('[Faucet] MNEMONIC present:', !!DEPLOYER_MNEMONIC, 'length:', DEPLOYER_MNEMONIC?.length)
 
-    const algorand = AlgorandClient.fromEnvironment()
-    const faucetAccount = algorand.account.fromMnemonic(mnemonic)
-
-    // First: check if user is opted in to USDC
-    const accountInfo = await algorand.client.algod.accountAssetInformation(address, deployments.usdc_asset_id).do().catch(() => null)
-
-    if (!accountInfo) {
-      return NextResponse.json({ error: 'Please opt-in to USDC (Asset ID: ' + deployments.usdc_asset_id + ') first' }, { status: 400 })
+    if (!address) {
+      return NextResponse.json({ error: 'address is required' }, { status: 400 })
     }
 
-    // Send 10,000 USDC (6 decimals)
-    const amount = BigInt(10000) * BigInt(1_000_000)
-    
-    console.log("[IRION-DEBUG] Sending 10,000 USDC from Dispenser...")
-    const result = await algorand.send.assetTransfer({
-      sender: faucetAccount.addr,
-      receiver: address,
-      assetId: BigInt(deployments.usdc_asset_id),
-      amount: amount,
+    // Validate Algorand address
+    if (!algosdk.isValidAddress(address)) {
+      return NextResponse.json({ error: 'Invalid Algorand address' }, { status: 400 })
+    }
+
+    if (!DEPLOYER_MNEMONIC) {
+      return NextResponse.json({ error: 'Faucet not configured (FAUCET_MNEMONIC missing)' }, { status: 500 })
+    }
+
+    if (!IUSDC_ASSET_ID) {
+      return NextResponse.json({ error: 'iUSDC asset ID not configured' }, { status: 500 })
+    }
+
+    const algod = new algosdk.Algodv2(ALGOD_TOKEN, ALGOD_SERVER, ALGOD_PORT)
+    const deployer = algosdk.mnemonicToSecretKey(DEPLOYER_MNEMONIC)
+    console.log('[Faucet] Deployer address:', deployer.addr.toString())
+
+    // Check if recipient has opted in to iUSDC
+    let isOptedIn = false
+    try {
+      const assetInfo = await algod.accountAssetInformation(address, IUSDC_ASSET_ID).do()
+      isOptedIn = assetInfo.assetHolding !== undefined
+    } catch {
+      isOptedIn = false
+    }
+
+    if (!isOptedIn) {
+      return NextResponse.json({
+        error: 'not_opted_in',
+        message: `Please opt-in to iUSDC (Asset ID: ${IUSDC_ASSET_ID}) first. Sign a 0-amount transfer to yourself.`,
+        asset_id: IUSDC_ASSET_ID,
+      }, { status: 400 })
+    }
+
+    // Check deployer iUSDC balance
+    let deployerBalance = BigInt(0)
+    try {
+      const deployerAsset = await algod.accountAssetInformation(
+        deployer.addr.toString(),
+        IUSDC_ASSET_ID
+      ).do()
+      deployerBalance = BigInt(deployerAsset.assetHolding?.amount ?? BigInt(0))
+    } catch {
+      return NextResponse.json({ error: 'Faucet has no iUSDC balance' }, { status: 500 })
+    }
+
+    if (deployerBalance < BigInt(FAUCET_AMOUNT)) {
+      return NextResponse.json({
+        error: 'Faucet depleted',
+        message: 'Faucet is out of iUSDC. Contact admin.',
+      }, { status: 503 })
+    }
+
+    // Build and send iUSDC transfer
+    const sp = await algod.getTransactionParams().do()
+
+    const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: deployer.addr.toString(),
+      to: address,
+      assetIndex: IUSDC_ASSET_ID,
+      amount: FAUCET_AMOUNT,
+      suggestedParams: sp,
+      note: new TextEncoder().encode('Irion iUSDC Faucet'),
+    } as any)
+
+    const signedTxn = txn.signTxn(deployer.sk)
+    const txResponse = await algod.sendRawTransaction(signedTxn).do() as any
+    const txId = txResponse.txId || txResponse.txid || (txResponse as any)['txId']
+
+    // Wait for confirmation
+    const confirmation = await algosdk.waitForConfirmation(algod, txId, 4)
+
+    console.log(`[Faucet] Sent ${FAUCET_AMOUNT / 1_000_000} iUSDC to ${address}. TX: ${txId}`)
+
+    return NextResponse.json({
+      success: true,
+      tx_id: txId,
+      amount_iusdc: FAUCET_AMOUNT / 1_000_000,
+      asset_id: IUSDC_ASSET_ID,
+      confirmed_round: confirmation.confirmedRound ? Number(confirmation.confirmedRound) : undefined,
+      explorer_url: `https://testnet.explorer.perawallet.app/transactions/${txId}`,
     })
 
-    console.log("[IRION-DEBUG] Faucet TX Sent:", result.txIds[0])
-
-    return NextResponse.json({ 
-      success: true, 
-      tx_id: result.txIds[0], 
-      amount: 10000,
-      asset_id: deployments.usdc_asset_id 
-    })
   } catch (err: any) {
-    console.error('[IRION-DEBUG] Faucet API Internal Error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('[Faucet] Error:', err.message ?? err)
+    return NextResponse.json(
+      { error: err.message ?? 'Faucet transaction failed' },
+      { status: 500 }
+    )
   }
 }

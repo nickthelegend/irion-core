@@ -10,8 +10,16 @@ import { ThemeProvider } from './theme-provider'
 import { Toaster } from './ui/sonner'
 
 const walletManager = new WalletManager({
-  wallets: [WalletId.PERA, WalletId.DEFLY, WalletId.LUTE],
-  defaultNetwork: NetworkId.TESTNET,
+  wallets: [
+    WalletId.PERA,
+    WalletId.DEFLY,
+    {
+      id: WalletId.LUTE,
+      options: { siteName: 'Irion Hub' }
+    },
+    WalletId.KIBISIS
+  ],
+  defaultNetwork: NetworkId.LOCALNET,
 })
 
 export function Providers({ children }: { children: React.ReactNode }) {

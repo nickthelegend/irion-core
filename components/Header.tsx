@@ -34,10 +34,8 @@ export function Header() {
         {/* Left: menu icon + logo */}
         <div className="flex items-center gap-2">
           <SidebarDrawer open={open} onOpenChange={setOpen} />
-          <Link href="/" className="font-semibold tracking-wide">
-            <span className="inline-flex items-center gap-2">
-              <Image src="/text-logo.png" alt="Irion Logo" width={140} height={40} className="h-10 w-auto" />
-            </span>
+          <Link href="/" className="font-semibold tracking-wide ml-2">
+            <Image src="/text-logo.png" alt="Irion Logo" width={140} height={40} className="h-10 w-auto rotate-90" />
           </Link>
         </div>
 

@@ -4,10 +4,11 @@ import { Loan } from '@/lib/db/models/loan.model'
 import { fetchLoan } from '@/lib/algorand/readChain'
 import { encodeAddress } from 'algosdk'
 
-export async function GET(req: NextRequest, { params }: { params: { loan_id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ loan_id: string }> }) {
   try {
+    const { loan_id } = await params
     await connectDB()
-    const id = Number(params.loan_id)
+    const id = Number(loan_id)
     let loan = await Loan.findOne({ loan_id: id })
     if (!loan) {
       const onChain = await fetchLoan(id)
