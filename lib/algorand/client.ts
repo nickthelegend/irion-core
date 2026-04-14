@@ -33,22 +33,24 @@ import { LendingPoolFactory } from './clients/LendingPoolClient'
 import { BnplCreditFactory } from './clients/BNPLCreditClient'
 import { MerchantEscrowFactory } from './clients/MerchantEscrowClient'
 
+const DUMMY_SENDER = 'S6MCEVCQXBA55VQLVF4PST7L7FDKSR2FB23X323EBESYGOI4K7EMWFTBHM' // LocalNet Dispenser Address
+
 export function getCreditScoreClient(sender?: string) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
-  return new CreditScoreFactory({ algorand, defaultSender: sender }).getAppClientById({ appId: BigInt(deployments.credit_score_app_id) })
+  return new CreditScoreFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.credit_score_app_id) })
 }
 
 export function getLendingPoolClient(sender?: string) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
-  return new LendingPoolFactory({ algorand, defaultSender: sender }).getAppClientById({ appId: BigInt(deployments.lending_pool_app_id) })
+  return new LendingPoolFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.lending_pool_app_id) })
 }
 
 export function getBNPLCreditClient(sender?: string) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
-  return new BnplCreditFactory({ algorand, defaultSender: sender }).getAppClientById({ appId: BigInt(deployments.bnpl_credit_app_id) })
+  return new BnplCreditFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.bnpl_credit_app_id) })
 }
 
 export function getMerchantEscrowClient(sender?: string) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
-  return new MerchantEscrowFactory({ algorand, defaultSender: sender }).getAppClientById({ appId: BigInt(deployments.merchant_escrow_app_id) })
+  return new MerchantEscrowFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.merchant_escrow_app_id) })
 }

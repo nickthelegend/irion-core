@@ -36,7 +36,34 @@ export function useDepositToPool() {
       // Build atomic group: USDC payment + deposit call
       const amountMicro = BigInt(Math.floor(amount_usdc * 1_000_000))
       console.log('DEBUG: useDepositToPool - calculated amountMicro', amountMicro.toString())
+      
+      // Get LP Token ID from contract state
+      const globalState = await client.state.global.getAll()
+      const lpTokenId = globalState.lpTokenId
+      console.log('DEBUG: useDepositToPool - LP Token ID detected:', lpTokenId?.toString())
+
       const sp = await algorand.client.algod.getTransactionParams().do()
+      const composer = client.newGroup()
+
+      // Check if user is opted into LP token
+      if (lpTokenId) {
+        try {
+          await algorand.client.algod.accountAssetInformation(activeAddress, lpTokenId).do()
+          console.log('DEBUG: useDepositToPool - user already opted into LP token')
+        } catch (e) {
+          console.log('DEBUG: useDepositToPool - user not opted into LP token, adding opt-in...')
+          composer.addTransaction(
+            algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+              sender: activeAddress,
+              receiver: activeAddress,
+              assetIndex: Number(lpTokenId),
+              amount: 0,
+              suggestedParams: sp,
+            }),
+            transactionSigner
+          )
+        }
+      }
 
       const paymentTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
         sender: activeAddress,
@@ -47,10 +74,10 @@ export function useDepositToPool() {
       })
 
       console.log('DEBUG: useDepositToPool - sending transaction group...')
-      const result = await client.send.deposit({
+      const result = await (await composer.deposit({
         args: [{ txn: paymentTxn, signer: transactionSigner }],
         extraFee: (algokit.microAlgos(2000) as any),
-      })
+      }).composer()).send()
 
       console.log('DEBUG: useDepositToPool - success', result.txIds[0])
       return result.txIds[0]
