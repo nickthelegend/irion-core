@@ -41,9 +41,12 @@ export async function POST(req: NextRequest) {
     let isOptedIn = false
     try {
       const assetInfo = await algod.accountAssetInformation(address, IUSDC_ASSET_ID).do()
-      isOptedIn = assetInfo.assetHolding !== undefined
+      const holding = assetInfo['asset-holding'] ?? assetInfo.assetHolding
+      isOptedIn = holding !== undefined
+      console.log('[Faucet] Recipient opted into iUSDC:', isOptedIn)
     } catch {
       isOptedIn = false
+      console.log('[Faucet] Recipient NOT opted into iUSDC')
     }
 
     if (!isOptedIn) {
@@ -61,9 +64,13 @@ export async function POST(req: NextRequest) {
         deployer.addr.toString(),
         IUSDC_ASSET_ID
       ).do()
-      deployerBalance = BigInt(deployerAsset.assetHolding?.amount ?? BigInt(0))
-    } catch {
-      return NextResponse.json({ error: 'Faucet has no iUSDC balance' }, { status: 500 })
+      console.log('[Faucet] Deployer asset info:', deployerAsset)
+      const amount = deployerAsset['asset-holding']?.amount ?? deployerAsset.assetHolding?.amount ?? deployerAsset.amount
+      deployerBalance = BigInt(amount)
+      console.log('[Faucet] Deployer iUSDC balance:', deployerBalance.toString(), '(' + (Number(deployerBalance) / 1_000_000).toFixed(2) + ' iUSDC)')
+    } catch (e: any) {
+      console.error('[Faucet] Error checking deployer balance:', e.message ?? e)
+      return NextResponse.json({ error: 'Faucet has no iUSDC balance', details: e.message }, { status: 500 })
     }
 
     if (deployerBalance < BigInt(FAUCET_AMOUNT)) {
