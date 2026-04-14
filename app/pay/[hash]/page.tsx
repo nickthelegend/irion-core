@@ -26,7 +26,7 @@ interface BillDetails {
 export default function PaymentHub() {
   const { hash } = useParams()
   const router = useRouter()
-  const { activeAddress } = useWallet()
+  const { activeAddress, transactionSigner } = useWallet()
   const [bill, setBill] = useState<BillDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
@@ -56,7 +56,7 @@ export default function PaymentHub() {
     console.log("[IRION-DEBUG] Hub: Processing Payment", { hash, amount: bill.amount })
 
     try {
-      const client = getBNPLCreditClient(activeAddress)
+      const client = getBNPLCreditClient(activeAddress, transactionSigner)
       const amountMicro = BigInt(Math.round(bill.amount * 1_000_000))
       
       // The merchant address in the contract for BNPL is the Merchant's wallet

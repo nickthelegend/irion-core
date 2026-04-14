@@ -1,4 +1,4 @@
-import algosdk from 'algosdk'
+import algosdk, { TransactionSigner } from 'algosdk'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 
 const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost'
@@ -38,24 +38,36 @@ import { MerchantEscrowFactory } from './clients/MerchantEscrowClient'
 // LocalNet Dispenser Address - this account should be funded
 const DUMMY_SENDER = 'HV4V3JKLUBMBIZHBAE3JVVYVRIW7W7Q3HE6DQSOJE5TOLG57TLAERWZHL4'
 
-export function getCreditScoreClient(sender?: string) {
+export function getCreditScoreClient(sender?: string, signer?: TransactionSigner) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
+  if (sender && signer) {
+    algorand.setSigner(sender, signer)
+  }
   const effectiveSender = sender ?? DUMMY_SENDER
   console.log('[IRION-DEBUG] getCreditScoreClient using sender:', effectiveSender)
   return new CreditScoreFactory({ algorand, defaultSender: effectiveSender }).getAppClientById({ appId: BigInt(deployments.credit_score_app_id) })
 }
 
-export function getLendingPoolClient(sender?: string) {
+export function getLendingPoolClient(sender?: string, signer?: TransactionSigner) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
+  if (sender && signer) {
+    algorand.setSigner(sender, signer)
+  }
   return new LendingPoolFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.lending_pool_app_id) })
 }
 
-export function getBNPLCreditClient(sender?: string) {
+export function getBNPLCreditClient(sender?: string, signer?: TransactionSigner) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
+  if (sender && signer) {
+    algorand.setSigner(sender, signer)
+  }
   return new BnplCreditFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.bnpl_credit_app_id) })
 }
 
-export function getMerchantEscrowClient(sender?: string) {
+export function getMerchantEscrowClient(sender?: string, signer?: TransactionSigner) {
   const algorand = AlgorandClient.fromClients({ algod: algodClient })
+  if (sender && signer) {
+    algorand.setSigner(sender, signer)
+  }
   return new MerchantEscrowFactory({ algorand, defaultSender: sender ?? DUMMY_SENDER }).getAppClientById({ appId: BigInt(deployments.merchant_escrow_app_id) })
 }
