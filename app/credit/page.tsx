@@ -82,6 +82,9 @@ export default function CreditPage() {
   const repayPages = Math.ceil(repaymentData.length / PAGE_SIZE)
   const pagedRepays = repaymentData.slice(repayPage * PAGE_SIZE, (repayPage + 1) * PAGE_SIZE)
 
+  const activeDebt = loans.reduce((acc, l) => l.status === 0 ? acc + parseFloat(l.principal) : acc, 0)
+  const availableCredit = Math.max(0, creditLine - activeDebt)
+
   return (
     <div className="flex-1 flex flex-col py-8 gap-8 w-full font-mono text-white">
       {/* Header */}
@@ -115,7 +118,7 @@ export default function CreditPage() {
           </div>
           <div className="p-5 flex flex-col gap-1 relative group">
             <span className="text-[10px] text-white/40 tracking-wider uppercase">Available_Credit</span>
-            <span className="text-primary text-2xl font-bold tracking-tighter">{creditLine.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+            <span className="text-primary text-2xl font-bold tracking-tighter">{availableCredit.toLocaleString(undefined,{maximumFractionDigits:2})}</span>
             <span className="text-[9px] text-white/20 uppercase tracking-tighter">Borrowing power</span>
             <TrendingUp className="absolute bottom-2 right-2 w-8 h-8 text-primary/5 group-hover:text-primary/10 transition-colors" />
           </div>

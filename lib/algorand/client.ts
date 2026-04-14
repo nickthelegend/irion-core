@@ -21,11 +21,11 @@ export const indexerClient = new algosdk.Indexer(
 )
 
 export const deployments = {
-  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 1031),
-  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 1032),
-  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 1035),
-  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 1044),
-  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 1047),
+  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 1123),
+  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 1124),
+  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 1127),
+  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 1136),
+  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 1141),
 }
 console.log('[IRION-DEBUG] Loaded deployments:', deployments)
 
