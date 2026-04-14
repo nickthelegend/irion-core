@@ -82,7 +82,7 @@ export default function CreditPage() {
   const repayPages = Math.ceil(repaymentData.length / PAGE_SIZE)
   const pagedRepays = repaymentData.slice(repayPage * PAGE_SIZE, (repayPage + 1) * PAGE_SIZE)
 
-  const activeDebt = loans.reduce((acc, l) => l.status === 0 ? acc + parseFloat(l.principal) : acc, 0)
+  const activeDebt = loans.reduce((acc: number, l) => l.status === 0 ? acc + parseFloat(l.principal) : acc, 0)
   const availableCredit = Math.max(0, creditLine - activeDebt)
 
   return (

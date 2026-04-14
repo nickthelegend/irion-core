@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     let isOptedIn = false
     try {
       const assetInfo = await algod.accountAssetInformation(address, IUSDC_ASSET_ID).do()
-      const holding = assetInfo['asset-holding'] ?? assetInfo.assetHolding
+      const holding = (assetInfo as any)['asset-holding'] ?? (assetInfo as any).assetHolding
       isOptedIn = holding !== undefined
       console.log('[Faucet] Recipient opted into iUSDC:', isOptedIn)
     } catch {
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         IUSDC_ASSET_ID
       ).do()
       console.log('[Faucet] Deployer asset info:', deployerAsset)
-      const amount = deployerAsset['asset-holding']?.amount ?? deployerAsset.assetHolding?.amount ?? deployerAsset.amount
+      const amount = (deployerAsset as any)['asset-holding']?.amount ?? (deployerAsset as any).assetHolding?.amount ?? (deployerAsset as any).amount
       deployerBalance = BigInt(amount)
       console.log('[Faucet] Deployer iUSDC balance:', deployerBalance.toString(), '(' + (Number(deployerBalance) / 1_000_000).toFixed(2) + ' iUSDC)')
     } catch (e: any) {
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
       tx_id: txId,
       amount_iusdc: FAUCET_AMOUNT / 1_000_000,
       asset_id: IUSDC_ASSET_ID,
-      confirmed_round: confirmation.confirmedRound ? Number(confirmation.confirmedRound) : undefined,
+      confirmed_round: (confirmation as any).confirmedRound ? Number((confirmation as any).confirmedRound) : undefined,
       explorer_url: `https://testnet.explorer.perawallet.app/transactions/${txId}`,
     })
 

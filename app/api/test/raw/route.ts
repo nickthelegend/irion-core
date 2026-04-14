@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     })
     
     const selector = abiMethod.getSelector()
-    console.log('[TEST-RAW] Method selector:', selector.toString('hex'))
+    console.log('[TEST-RAW] Method selector:', Buffer.from(selector).toString('hex'))
     
     // Try to call using simulate
     console.log('[TEST-RAW] Attempting simulate call...')
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     const sp = await algodClient.getTransactionParams().do()
     
     // Create a signer that just returns empty - we're simulating
-    const dummySigner = async () => new Uint8Array(0)
+    const dummySigner = async (group: algosdk.Transaction[]) => group.map(() => new Uint8Array(0))
     
     atc.addMethodCall({
       appID: deployments.credit_score_app_id,
@@ -60,9 +60,8 @@ export async function GET(req: NextRequest) {
     }, 2))
     
     return NextResponse.json({
-      address,
       appId: deployments.credit_score_app_id,
-      methodSelector: selector.toString('hex'),
+      methodSelector: Buffer.from(selector).toString('hex'),
       simulateResult: result,
       appInfo: {
         id: appInfo.id,

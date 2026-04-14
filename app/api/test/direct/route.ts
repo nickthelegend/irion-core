@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     
     // Dry run the transaction to see what happens
     const appCall = algosdk.makeApplicationNoOpTxnFromObject({
-      from: address,
+      sender: address,
       suggestedParams: sp,
       appIndex: appId,
       appArgs: [
@@ -56,13 +56,13 @@ export async function GET(req: NextRequest) {
     
     // Try to dry run
     try {
-      const dr = new algosdk.DryrunSource(
+      const dr = new (algosdk as any).DryrunSource(
         'json',
-        Buffer.from(appCall.toByte()).toString('base64')
+        Buffer.from((appCall as any).toByte()).toString('base64')
       )
-      const dryrunResult = await algodClient.dryrun({
+      const dryrunResult = await (algodClient.dryrun({
         txns: [dr]
-      }).do()
+      } as any) as any).do()
       console.log('[TEST-DIRECT] Dry run result:', JSON.stringify(dryrunResult, null, 2))
     } catch (dryRunError: any) {
       console.error('[TEST-DIRECT] Dry run error:', dryRunError.message)
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       address,
       appId,
       method: abiMethod.getSignature(),
-      selector: abiMethod.getSelector().toString('hex'),
+      selector: Buffer.from(abiMethod.getSelector()).toString('hex'),
       note: 'Check server logs for dry run results'
     })
     
