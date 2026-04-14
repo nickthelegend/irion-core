@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import algosdk from 'algosdk'
 
-const DEPLOYER_MNEMONIC = process.env.FAUCET_MNEMONIC!
+const DEPLOYER_MNEMONIC = process.env.FAUCET_MNEMONIC
 const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost'
 const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 4001)
 const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? 'a'.repeat(64)
@@ -20,21 +20,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'address is required' }, { status: 400 })
     }
 
-    // Validate Algorand address
-    if (!algosdk.isValidAddress(address)) {
-      return NextResponse.json({ error: 'Invalid Algorand address' }, { status: 400 })
-    }
-
     if (!DEPLOYER_MNEMONIC) {
       return NextResponse.json({ error: 'Faucet not configured (FAUCET_MNEMONIC missing)' }, { status: 500 })
+    }
+
+    // Validate Algorand address
+    if (typeof address !== 'string' || !algosdk.isValidAddress(address)) {
+      return NextResponse.json({ error: 'Invalid Algorand address' }, { status: 400 })
     }
 
     if (!IUSDC_ASSET_ID) {
       return NextResponse.json({ error: 'iUSDC asset ID not configured' }, { status: 500 })
     }
 
-    const algod = new algosdk.Algodv2(ALGOD_TOKEN, ALGOD_SERVER, ALGOD_PORT)
     const deployer = algosdk.mnemonicToSecretKey(DEPLOYER_MNEMONIC)
+    const algod = new algosdk.Algodv2(ALGOD_TOKEN, ALGOD_SERVER, ALGOD_PORT)
     console.log('[Faucet] Deployer address:', deployer.addr.toString())
 
     // Check if recipient has opted in to iUSDC
@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
     const sp = await algod.getTransactionParams().do()
 
     const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-      from: deployer.addr.toString(),
-      to: address,
+      sender: deployer.addr.toString(),
+      receiver: address,
       assetIndex: IUSDC_ASSET_ID,
       amount: FAUCET_AMOUNT,
       suggestedParams: sp,
