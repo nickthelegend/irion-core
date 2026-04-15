@@ -3,20 +3,29 @@ import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 import algosdk from 'algosdk'
 
 // Read asset balance for a wallet address from chain
-export async function fetchAssetBalance(address: string, assetId: number): Promise<number> {
+export async function fetchAssetBalance(address: string, assetId: number): Promise<{ balance: number; isOptedIn: boolean }> {
   console.log('[IRION-DEBUG] fetchAssetBalance initiated', { address, assetId })
   try {
-    const accountInfo = await algodClient.accountAssetInformation(address, assetId).do()
-    if (!accountInfo.assetHolding) return 0
-    const amount = Number(accountInfo.assetHolding.amount)
+    const accountInfo = await algodClient.accountInformation(address).do()
+    if (!accountInfo.assets) return { balance: 0, isOptedIn: false }
+    
+    // Find the specific asset in the account's assets array
+    const assetHolding = accountInfo.assets.find((a: any) => a['asset-id'] === assetId)
+    
+    if (!assetHolding) return { balance: 0, isOptedIn: false }
+    
+    const amount = Number(assetHolding.amount)
     // Assuming USDC decimals = 6
-    return amount / 1_000_000
-  } catch (e) {
-    console.warn('[IRION-DEBUG] fetchAssetBalance error (likely not opted in)', e)
-    return 0
+    return { balance: amount / 1_000_000, isOptedIn: true }
+  } catch (e: any) {
+    // If the entire account is not found (404), they have no balance
+    if (e?.status === 404 || e?.message?.includes('404')) {
+        return { balance: 0, isOptedIn: false }
+    }
+    console.warn('[IRION-DEBUG] fetchAssetBalance error', e)
+    return { balance: 0, isOptedIn: false }
   }
 }
-
 
 // Read credit profile for a wallet address from chain
 export async function fetchCreditProfileFromChain(address: string) {
@@ -129,9 +138,9 @@ export async function fetchPoolStats() {
     }
 
     // Fallback: Read global state directly
-    console.log('[IRION-DEBUG] falling back to global state read')
+    console.log('[IRION-DEBUG] falling back to global state read for App:', client.appId)
     const state = await client.state.global.getAll()
-    console.log('[IRION-DEBUG] global state read:', state)
+    console.log('[IRION-DEBUG] global state retrieved keys:', Object.keys(state))
     
     return {
       total_deposits: state.totalDeposits ?? BigInt(0),

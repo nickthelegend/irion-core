@@ -10,6 +10,8 @@ import { usePoolStats } from "@/lib/hooks/usePoolStats"
 import { useAssetBalance } from "@/lib/hooks/useBalance"
 import { useWallet } from "@txnlab/use-wallet-react"
 import { deployments } from "@/lib/algorand/client"
+import { useOptInToAsset } from "@/lib/hooks/useContractActions"
+import { Loader2 } from "lucide-react"
 
 
 function formatUsd(value: number): string {
@@ -23,7 +25,11 @@ export default function PoolsPage() {
   
   const { activeAddress } = useWallet()
   const { data: poolStats, isLoading: statsLoading, error: poolStatsError } = usePoolStats()
-  const { data: usdcBalance } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
+  const { data: usdcBalanceData, isLoading: balanceLoading } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
+  const { mutate: optIn, isPending: isOptingIn } = useOptInToAsset()
+
+  const usdcBalance = usdcBalanceData?.balance ?? 0
+  const isUSDCOptedIn = usdcBalanceData?.isOptedIn ?? false
 
   // Debug logging
   useEffect(() => {
@@ -132,18 +138,35 @@ export default function PoolsPage() {
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-end items-center gap-2">
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal({ pool: poolInfo, mode: "supply" }) }}
-                    className="px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider hover:bg-primary/20 transition-all"
-                  >
-                    Supply
-                  </button>
-                  <button
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal({ pool: poolInfo, mode: "borrow" }) }}
-                    className="px-3 py-1.5 rounded-lg border border-border/30 bg-secondary/20 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-secondary/40 transition-all"
-                  >
-                    Borrow
-                  </button>
+                  {activeAddress && !isUSDCOptedIn ? (
+                    <button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation(); 
+                        optIn({ assetId: deployments.usdc_asset_id });
+                      }}
+                      disabled={isOptingIn}
+                      className="px-3 py-1.5 rounded-lg border border-yellow-500/50 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold uppercase tracking-wider hover:bg-yellow-500/20 transition-all flex items-center gap-2"
+                    >
+                      {isOptingIn ? <Loader2 size={12} className="animate-spin" /> : null}
+                      {isOptingIn ? "Opting In..." : "Opt-in USDC"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal({ pool: poolInfo, mode: "supply" }) }}
+                        className="px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/5 text-primary text-[10px] font-bold uppercase tracking-wider hover:bg-primary/20 transition-all"
+                      >
+                        Supply
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setModal({ pool: poolInfo, mode: "borrow" }) }}
+                        className="px-3 py-1.5 rounded-lg border border-border/30 bg-secondary/20 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-secondary/40 transition-all"
+                      >
+                        Borrow
+                      </button>
+                    </>
+                  )}
                   <ChevronRight size={14} className="text-foreground/20 group-hover:text-primary/60 transition-colors" />
                 </div>
               </Link>

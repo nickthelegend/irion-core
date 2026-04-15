@@ -7,6 +7,8 @@ const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? ''
 const INDEXER_SERVER = process.env.NEXT_PUBLIC_INDEXER_SERVER ?? 'http://localhost'
 const INDEXER_PORT = Number(process.env.NEXT_PUBLIC_INDEXER_PORT ?? 8980)
 
+console.log('[IRION-DEBUG] client.ts ALGOD_SERVER:', ALGOD_SERVER, 'PORT:', ALGOD_PORT)
+
 // Algonode public nodes use empty string token with port 443
 export const algodClient = new algosdk.Algodv2(
   ALGOD_TOKEN,
