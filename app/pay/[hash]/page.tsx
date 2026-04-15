@@ -36,7 +36,7 @@ export default function PaymentHub() {
   useEffect(() => {
     async function fetchBill() {
       try {
-        const res = await fetch(`http://localhost:3001/api/bills/${hash}`)
+        const res = await fetch(`https://merchants.irion.network/api/bills/${hash}`)
         if (!res.ok) throw new Error("Bill not found")
         const data = await res.json()
         setBill(data)
@@ -135,7 +135,7 @@ export default function PaymentHub() {
           <div className="text-right">
              <div className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Network</div>
              <div className="text-[10px] text-green-400 font-black uppercase tracking-tighter flex items-center gap-1 justify-end">
-                <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" /> ALGORAND_LOCALNET
+                <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse" /> ALGORAND_TESTNET
              </div>
           </div>
         </div>
