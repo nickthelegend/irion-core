@@ -16,9 +16,9 @@ function getAlgorandClient(activeAddress: string, transactionSigner: any) {
   })
   return AlgorandClient.fromClients({
     algod: new algosdk.Algodv2(
-      process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? 'a'.repeat(64),
-      process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost',
-      Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 4001)
+      process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? '',
+      process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'https://testnet-api.algonode.cloud',
+      Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 443)
     ),
   }).setSigner(activeAddress, transactionSigner)
 }

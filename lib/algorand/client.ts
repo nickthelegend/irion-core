@@ -1,11 +1,11 @@
 import algosdk, { TransactionSigner } from 'algosdk'
 import { AlgorandClient } from '@algorandfoundation/algokit-utils'
 
-const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost'
-const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 4001)
+const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'https://testnet-api.algonode.cloud'
+const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 443)
 const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? ''
-const INDEXER_SERVER = process.env.NEXT_PUBLIC_INDEXER_SERVER ?? 'http://localhost'
-const INDEXER_PORT = Number(process.env.NEXT_PUBLIC_INDEXER_PORT ?? 8980)
+const INDEXER_SERVER = process.env.NEXT_PUBLIC_INDEXER_SERVER ?? 'https://testnet-idx.algonode.cloud'
+const INDEXER_PORT = Number(process.env.NEXT_PUBLIC_INDEXER_PORT ?? 443)
 
 console.log('[IRION-DEBUG] client.ts ALGOD_SERVER:', ALGOD_SERVER, 'PORT:', ALGOD_PORT)
 
@@ -23,11 +23,11 @@ export const indexerClient = new algosdk.Indexer(
 )
 
 export const deployments = {
-  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 1123),
-  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 1124),
-  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 1127),
-  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 1136),
-  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 1141),
+  usdc_asset_id: Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 758823248),
+  credit_score_app_id: Number(process.env.NEXT_PUBLIC_CREDIT_SCORE_APP_ID ?? 758823250),
+  lending_pool_app_id: Number(process.env.NEXT_PUBLIC_LENDING_POOL_APP_ID ?? 758823264),
+  bnpl_credit_app_id: Number(process.env.NEXT_PUBLIC_BNPL_CREDIT_APP_ID ?? 758823294),
+  merchant_escrow_app_id: Number(process.env.NEXT_PUBLIC_MERCHANT_ESCROW_APP_ID ?? 758823312),
 }
 console.log('[IRION-DEBUG] Loaded deployments:', deployments)
 

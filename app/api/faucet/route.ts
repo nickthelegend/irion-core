@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import algosdk from 'algosdk'
 
 const DEPLOYER_MNEMONIC = process.env.FAUCET_MNEMONIC
-const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'http://localhost'
-const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 4001)
-const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? 'a'.repeat(64)
+const ALGOD_SERVER = process.env.NEXT_PUBLIC_ALGOD_SERVER ?? 'https://testnet-api.algonode.cloud'
+const ALGOD_PORT = Number(process.env.NEXT_PUBLIC_ALGOD_PORT ?? 443)
+const ALGOD_TOKEN = process.env.NEXT_PUBLIC_ALGOD_TOKEN ?? ''
 const IUSDC_ASSET_ID = Number(process.env.NEXT_PUBLIC_USDC_ASSET_ID ?? 0)
 const FAUCET_AMOUNT = 10_000 * 1_000_000 // 10,000 iUSDC in microUnits
 
