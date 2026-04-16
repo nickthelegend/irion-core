@@ -138,7 +138,7 @@ export default function PoolsPage() {
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-end items-center gap-2">
-                  {activeAddress && !isUSDCOptedIn ? (
+                  {activeAddress && !balanceLoading && !isUSDCOptedIn ? (
                     <button
                       onClick={(e) => { 
                         e.preventDefault(); 

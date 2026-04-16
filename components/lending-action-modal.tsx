@@ -41,7 +41,7 @@ export function LendingActionModal({
   const [done, setDone] = useState(false)
   const { activeAddress } = useWallet()
   const { data: balanceData } = useAssetBalance(activeAddress ?? undefined, deployments.usdc_asset_id)
-  const walletBalance = balanceData !== undefined ? balanceData.toFixed(2) : "0.00"
+  const walletBalance = balanceData !== undefined ? balanceData.balance.toFixed(2) : "0.00"
 
   const [txHash, setTxHash] = useState<string | null>(null)
 

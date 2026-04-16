@@ -10,11 +10,18 @@ export async function fetchAssetBalance(address: string, assetId: number): Promi
     if (!accountInfo.assets) return { balance: 0, isOptedIn: false }
     
     // Find the specific asset in the account's assets array
-    const assetHolding = accountInfo.assets.find((a: any) => a['asset-id'] === assetId)
+    const assetHolding = accountInfo.assets.find((a: any) => {
+      const id = a['asset-id'] ?? a.assetId ?? a.asset_id
+      return BigInt(id) === BigInt(assetId)
+    })
     
-    if (!assetHolding) return { balance: 0, isOptedIn: false }
+    if (!assetHolding) {
+      console.log('[IRION-DEBUG] fetchAssetBalance - asset not found in account', { address, assetId })
+      return { balance: 0, isOptedIn: false }
+    }
     
     const amount = Number(assetHolding.amount)
+    console.log('[IRION-DEBUG] fetchAssetBalance - asset found', { address, assetId, amount })
     // Assuming USDC decimals = 6
     return { balance: amount / 1_000_000, isOptedIn: true }
   } catch (e: any) {
