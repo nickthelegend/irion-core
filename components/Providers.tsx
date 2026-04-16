@@ -20,11 +20,20 @@ const walletManager = new WalletManager({
     WalletId.KIBISIS
   ],
   defaultNetwork: NetworkId.TESTNET,
-  networkConfig: {
-    testnet: {
-      nodeServer: process.env.NEXT_PUBLIC_ALGOD_SERVER || 'https://testnet-api.algonode.cloud',
-      nodePort: process.env.NEXT_PUBLIC_ALGOD_PORT || '443',
-      nodeToken: process.env.NEXT_PUBLIC_ALGOD_TOKEN || '',
+  networks: {
+    [NetworkId.TESTNET]: {
+      algod: {
+        baseServer: process.env.NEXT_PUBLIC_ALGOD_SERVER || 'https://testnet-api.algonode.cloud',
+        port: process.env.NEXT_PUBLIC_ALGOD_PORT || '443',
+        token: process.env.NEXT_PUBLIC_ALGOD_TOKEN || '',
+      }
+    },
+    [NetworkId.LOCALNET]: {
+      algod: {
+        baseServer: process.env.NEXT_PUBLIC_ALGOD_SERVER || 'https://testnet-api.algonode.cloud',
+        port: process.env.NEXT_PUBLIC_ALGOD_PORT || '443',
+        token: process.env.NEXT_PUBLIC_ALGOD_TOKEN || '',
+      }
     }
   }
 })
