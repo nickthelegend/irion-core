@@ -19,7 +19,14 @@ const walletManager = new WalletManager({
     },
     WalletId.KIBISIS
   ],
-  defaultNetwork: NetworkId.LOCALNET,
+  defaultNetwork: NetworkId.TESTNET,
+  networkConfig: {
+    testnet: {
+      nodeServer: process.env.NEXT_PUBLIC_ALGOD_SERVER || 'https://testnet-api.algonode.cloud',
+      nodePort: process.env.NEXT_PUBLIC_ALGOD_PORT || '443',
+      nodeToken: process.env.NEXT_PUBLIC_ALGOD_TOKEN || '',
+    }
+  }
 })
 
 export function Providers({ children }: { children: React.ReactNode }) {
