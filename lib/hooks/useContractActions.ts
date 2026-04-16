@@ -281,18 +281,11 @@ export function useOptInToAsset() {
       if (!activeAddress || !transactionSigner) throw new Error('Wallet not connected')
 
       const algorand = getAlgorandClient(activeAddress, transactionSigner)
-      const sp = await algorand.client.algod.getTransactionParams().do()
-
-      const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-        sender: activeAddress,
-        receiver: activeAddress,
-        assetIndex: assetId,
-        amount: 0,
-        suggestedParams: sp,
-      })
-
       console.log('DEBUG: useOptInToAsset - sending transaction...')
-      const result = await algorand.send.transaction({ transaction: txn, signer: transactionSigner })
+      const result = await algorand.send.assetOptIn({
+        assetId: BigInt(assetId),
+        sender: activeAddress,
+      })
 
       console.log('DEBUG: useOptInToAsset - success', result.txId)
       return result.txId
