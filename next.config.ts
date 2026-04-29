@@ -3,11 +3,19 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  transpilePackages: [
+    "algo-x-evm-sdk",
+    "@txnlab/use-wallet-ui-react",
+    "@txnlab/use-wallet-react",
+    "@rainbow-me/rainbowkit",
+    "wagmi",
+    "viem"
+  ],
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
+  turbopack: {
+    root: "..",
   },
   async headers() {
     return [
