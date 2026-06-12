@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@tanstack/react-query": ["./node_modules/@tanstack/react-query"]
     }
   },
   "include": [

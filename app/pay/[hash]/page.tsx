@@ -36,7 +36,8 @@ export default function PaymentHub() {
   useEffect(() => {
     async function fetchBill() {
       try {
-        const res = await fetch(`https://merchants.irion.network/api/bills/${hash}`)
+        const origin = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://merchants.irion.network';
+        const res = await fetch(`${origin}/api/bills/${hash}`)
         if (!res.ok) throw new Error("Bill not found")
         const data = await res.json()
         setBill(data)
