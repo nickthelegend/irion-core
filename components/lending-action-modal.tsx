@@ -67,10 +67,28 @@ export function LendingActionModal({
     try {
       if (isSupply) {
         const txId = await depositToPool.mutateAsync({ amount_usdc: parseFloat(amount) })
-        addLog({ id: 2, step: "Deposit Confirmed", detail: `TX: ${txId}`, status: "done" })
+        addLog({
+          id: 2,
+          step: "Deposit Confirmed",
+          detail: (
+            <span>
+              TX: <a href={`https://lora.algokit.io/testnet/transaction/${txId}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">{txId.slice(0, 8)}...{txId.slice(-8)}</a>
+            </span>
+          ),
+          status: "done"
+        })
       } else {
         const txId = await withdrawFromPool.mutateAsync({ lp_amount: parseFloat(amount) })
-        addLog({ id: 2, step: "Withdraw Confirmed", detail: `TX: ${txId}`, status: "done" })
+        addLog({
+          id: 2,
+          step: "Withdraw Confirmed",
+          detail: (
+            <span>
+              TX: <a href={`https://lora.algokit.io/testnet/transaction/${txId}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary transition-colors">{txId.slice(0, 8)}...{txId.slice(-8)}</a>
+            </span>
+          ),
+          status: "done"
+        })
       }
 
       const fn = isSupply ? "supply" : "borrow"

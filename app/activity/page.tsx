@@ -131,9 +131,14 @@ export default function ActivityPage() {
                       {t.txHash && (
                         <>
                           <span className="text-[10px] text-foreground/20">|</span>
-                          <span className="text-[10px] text-primary/60 flex items-center gap-1 font-bold underline">
+                          <a
+                            href={`https://lora.algokit.io/testnet/transaction/${t.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-primary/60 flex items-center gap-1 font-bold underline hover:text-primary transition-colors"
+                          >
                             TX_{t.txHash.slice(0, 6)} <ExternalLink size={10} />
-                          </span>
+                          </a>
                         </>
                       )}
                     </div>

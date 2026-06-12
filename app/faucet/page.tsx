@@ -268,7 +268,9 @@ export default function FaucetPage() {
                 <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase tracking-wider">
                   <CheckCircle2 size={14} /> Minted Successfully
                 </div>
-                <div className="text-[10px] text-green-400/40 font-mono truncate">TX: {txHash}</div>
+                <div className="text-[10px] text-green-400/40 font-mono truncate">
+                  TX: <a href={`https://lora.algokit.io/testnet/transaction/${txHash}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300 transition-colors">{txHash}</a>
+                </div>
               </div>
             )}
           </div>
